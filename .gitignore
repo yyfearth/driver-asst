@@ -1,0 +1,30 @@
+# Packages #
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# OS generated files #
+*.user
+*.DS_Store
+ehthumbs.db
+Icon?
+Thumbs.db
+desktop.ini
+
+# SVN database #
+.svn
+
+# Project binary directories and files
+*.suo
+bin/
+obj/
+/MVCTest
+/ConsoleTest
+/TestResults
