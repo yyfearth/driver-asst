@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Page Title</title>
+	<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.0rc2/jquery.mobile-1.0rc2.min.css" />
+	<link rel="stylesheet" href="app.css" />
+	<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.min.js"></script>
+	<script type="text/javascript" src="http://code.jquery.com/mobile/1.0rc2/jquery.mobile-1.0rc2.min.js"></script>
+</head>
+<body>
+	<div data-role="page" id="home" class="has-map">
+		<div data-role="header" class="ui-non-nav">
+			<h1>Knight Rider</h1>
+			<a id="logout" href="#login" data-role="button" class="ui-btn-right" data-direction="reverse" data-transition="flip">Logout</a>
+		</div>
+		<div data-role="content">
+			<div id="home_map" data-role="map" class="map"></div>
+			<div id="home_addr" class="map-addr ui-bar-b"></div>
+		</div>
+		<div data-role="footer" data-position="fixed" class="ui-bottom">
+			<a href="#search" id="btn_home_search" data-role="button" data-icon="search" data-iconpos="right" data-transition="slideup">Search Nearby</a>
+		</div>
+	</div>
+	<div data-role="page" id="login" data-rel="dialog">
+		<div data-role="header" class="ui-non-nav">
+			<h1>Login</h1>
+		</div>
+		<div data-role="content">
+			form
+			<a href="#home" data-role="button" data-transition="flip">Login</a>
+		</div>
+	</div>
+	<div data-role="page" id="search">
+		<div data-role="header">
+			<h1>Search Menu</h1>
+			<a href="javascript:history.go(-1)" data-btn-role="back" data-icon="arrow-l" data-direction="reverse">Back</a>
+			<a href="#home" data-btn-role="home" data-icon="home" data-iconpos="notext" data-direction="reverse" data-transition="slideup" class="ui-btn-right jqm-home">Home</a>
+		</div>
+		<div data-role="content">
+			<ul data-role="listview" data-inset="true">
+				<li data-role="list-divider">Quick Search</li>
+				<li><a href="#result" data-btn-role="search" id="search_svc">Service Station</a></li>
+				<li><a href="#result" data-btn-role="search" id="search_gas">Gas Station</a></li>
+				<li><a href="#result" data-btn-role="search" id="search_tow">Towing Station</a></li>
+				<li><a href="#result" data-btn-role="search" id="search_rep">Vehicle Repair Station</a></li>
+				<li data-role="list-divider">Custom Search</li>
+				<li><a href="#search_history">Custom Search and Search History</a></li>
+			</ul>
+		</div>
+	</div>
+	<div data-role="page" id="search_history">
+		<div data-role="header">
+			<h1>Custom Search</h1>
+		</div>
+		<div data-role="content">
+			<form id="custom_search_form">
+				<input type="search" name="search" id="input_search" placeholder="Type the Keywords here" />
+				<input type="submit" data-role="button" id="btn_custom_search" data-icon="search" data-iconpos="right" value="Search" />
+			</form>
+			<ul data-role="listview" data-inset="true" id="history_list">
+				<li data-role="list-divider" id="history_list_header">Search History</li>
+			</ul>
+		</div>
+	</div>
+	<div data-role="page" id="result" class="has-map">
+		<div data-role="header">
+			<h1>Search Result</h1>
+		</div>
+		<div data-role="content">
+			<div id="result_map" data-role="map" class="map"></div>
+			<div id="result_addr" class="map-addr ui-bar-b"></div>
+			<ul data-role="listview" id="result_list"></ul>
+		</div>
+	</div>
+	<div data-role="page" id="detail">
+		<div data-role="header">
+			<h1 id="detail_title">Detail</h1>
+		</div>
+		<div data-role="content">
+			<div id="detail_map" data-role="map" class="map"></div>
+			<div id="detail_addr" class="map-addr ui-bar-b"></div>
+			
+		</div>
+	</div>
+	<div data-role="page" id="direct" class="has-map">
+		<div data-role="header">
+			<h1>Direction</h1>
+		</div>
+		<div data-role="content">
+			map
+			<p><a href="#foo">Back to foo</a></p>
+		</div>
+	</div>
+	<div data-role="page" id="appointment">
+		<div data-role="header">
+			<h1>appointment</h1>
+		</div>
+		<div data-role="content">
+			c
+		</div>
+	</div>
+	<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=true"></script>
+	<script type="text/javascript" src="app.js"></script>
+</body>
+</html>
