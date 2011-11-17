@@ -1,15 +1,16 @@
 window.app = # ns
-	back: () -> history.go -1
+	back: -> history.go -1
 # init screen
 location.hash = '#home'
 # add back and home button to every page except home
 $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append $('[data-btn-role="back"],[data-btn-role="home"]')
 $('#search [data-btn-role="home"]').hide()
 # adjust ref height
-map_el = $ '#map'
-map_el.add(document.querySelectorAll '.map').height Math.round document.body.clientHeight * 0.35
+map_spacers = $ document.querySelectorAll '[data-role="map"]'
+map_spacers.add('#map').height Math.round document.body.clientHeight * 0.35
+$('#home').one pageshow: -> map.el.offset $('#home_map').offset()
 # build shared map
-map = app.map = new google.maps.Map map_el[0],
+map = app.map = new google.maps.Map $('#map')[0],
 	zoom: 15
 	mapTypeId: google.maps.MapTypeId.ROADMAP
 	navigationControl: true
@@ -17,16 +18,17 @@ map = app.map = new google.maps.Map map_el[0],
 		style: google.maps.NavigationControlStyle.SMALL
 svc = new google.maps.places.PlacesService map
 geocoder = new google.maps.Geocoder()
+svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.728271), new google.maps.LatLng(37.247821,-121.552734)
 # ext map
-(() -> # @ is map
-	@el = map_el;
+(-> # @ is map
+	@el = $ '#map';
 	# add traffic
 	trafficLayer = new google.maps.TrafficLayer()
 	trafficLayer.setMap @
 	$.extend @,
 		move: (id) =>
-			@el.detach()
-			$("##{id} .map").append @el
+			#@el.detach()
+			#$("##{id} .map").append @el
 			@ # end of move
 		setMarkers: (markers_cfg) =>
 			console.log 'markers', markers_cfg
@@ -54,25 +56,39 @@ geocoder = new google.maps.Geocoder()
 				# get geo location
 				curlatlng = new google.maps.LatLng pos.coords.latitude, pos.coords.longitude
 				console.log 'curlatlng', curlatlng
-				app.curlatlng = curlatlng
-				if auto
+				if not curlatlng.equals @getCenter()
+					curlatlng.changed = true
+				if auto #and curlatlng.changed
 					# clear markders
 					@setMarkers null
 					# set center
 					@setCenter curlatlng
+					map_spacers.each (i, m) => $(m).css 'background-image', "url('https://maps.googleapis.com/maps/api/staticmap?center=#{curlatlng.lat()},#{curlatlng.lng()}&zoom=#{$(m).attr('data-map-zoom') or 15}&size=#{$(window).width()}x#{@el.height()}&maptype=roadmap&format=png8&sensor=true')"
 					# get addr
 					geocoder.geocode latLng: curlatlng, (results, status) =>
 						if status is google.maps.GeocoderStatus.OK
 							callback.call @, curlatlng, results[0]?.formatted_address
 						else
 							alert "Geocoder failed due to: #{status}\n App terminated!"
-				else callback.call @ curlatlng
+						# set center again
+						@setCenter curlatlng
+				else callback.call @, curlatlng
 			), (-> alert 'App cannot run without geo location!') if navigator.geolocation?
 			@ # end of get cur pos
 ).call map # end of ext map
+$('[data-role="page"]').bind
+	pagebeforeshow: ->
+		map.el.css('opacity', 0).show()
+	pageshow: ->
+		map.el[if $(@).hasClass('has-map') then 'show' else 'hide']().css('opacity', 1)
+
+
 # home page
 $('#home').bind
-	pageshow: () ->
+	pageshow: ->
+		map.el.show()
+	pagebeforeshow: ->
+		return if $('#map', @).length
 		console.log 'home pageshow'
 		# init nav api and home page
 		map.getCurPos (curlatlng, addr) ->
@@ -82,6 +98,8 @@ $('#home').bind
 			@move 'home'
 		#maps.getCurPos ((curlatlng) -> @map.mark curlatlng) if @map? and not @map.getCenter()?.equals curlatlng
 		@ # end of home page show
+	pagehide: ->
+		map.el.hide()
 
 # init history
 try
@@ -92,7 +110,7 @@ catch err
 	console.log err
 	app.history = []
 finally
-	app.history.refresh = () =>
+	app.history.refresh = =>
 		$('#history_list li:gt(0)').remove() # remove all except history_list_header
 		if app.history.length
 			$('#history_list_header').after app.history.map((item) ->"<li><a href=\"#result\" data-btn-role=\"search\">#{item}</a></li>").join ''
@@ -100,19 +118,22 @@ finally
 			$('#history_list_header').after '<li data-role="list-divider" class="ui-body-c list-none">(None)</li>'
 
 # search menu page
-# $('#search').bind pageshow: () -> @map.keyword = null if @map? # clear app.search_keyword
+# $('#search').bind pageshow: -> @map.keyword = null if @map? # clear app.search_keyword
 # bind buttons and menus
-$('[data-btn-role="search"]').live vclick: () ->
+$('[data-btn-role="search"]').live vclick: ->
 	app.search_keyword = $(@).text()
 	console.log 'vclick', app.search_keyword
 	@ # end of vclick
 # custom search
 $('#search_history').bind
-	pagecreate: () ->
+	pagecreate: ->
 		@created = true
 		app.history.refresh() # for the 1st show
-$('#search_history').bind 'pageshow pagebeforeshow', () -> $('#history_list').listview 'refresh' if @created
-$('#custom_search_form').submit () ->
+		new google.maps.places.Autocomplete $('#input_search')[0],
+			bounds: svbounds
+			types: ['establishment']
+$('#search_history').bind 'pageshow pagebeforeshow', -> $('#history_list').listview 'refresh' if @created
+$('#custom_search_form').submit ->
 	input = $('#input_search')
 	keyword = $.trim input.val()
 	if keyword
@@ -122,13 +143,13 @@ $('#custom_search_form').submit () ->
 	else input.focus().val ''
 	false # end of submit
 # save history
-window.onbeforeunload = () ->
+window.onbeforeunload = ->
 	localStorage.custom_search_history = JSON.stringify app.history
 	return #"Sure to leave Knight Rider?"
 
 # result page
 $('#result').bind
-	pageshow: () ->
+	pageshow: ->
 		console.log 'search for', app.search_keyword
 		if not app.search_keyword
 			app.back(); return
@@ -142,6 +163,7 @@ $('#result').bind
 			@move 'result'
 			# search result
 			svc.search
+				#bounds: svbounds
 				location: curlatlng
 				radius: 5000
 				keyword: app.search_keyword
@@ -152,7 +174,9 @@ $('#result').bind
 						result_list.height document.body.clientHeight - result_list.offset().top
 						console.log 'search result', results
 						# sort results
+						app.result_map = {}
 						results.forEach (r) ->
+							app.result_map[r.id] = r
 							r = r.geometry
 							dlng = r.location.lng() - curlatlng.lng()
 							dlat = r.location.lat() - curlatlng.lat()
@@ -160,11 +184,11 @@ $('#result').bind
 						results.sort (a, b) -> a.geometry.dist - b.geometry.dist
 						results = results.slice 0, 25 # only A-Z
 						# add to list in order
-						result_list.append results.map((result, i) ->
-							result.seq = String.fromCharCode 65 + i # from A
-							"<li><a href=\"#detail\" data-btn-role=\"result\" id=\"\">
-<div style=\"float:left\">#{result.seq}</div><img src=\"#{result.icon}\" class=\"ui-li-icon\">
-<h3 class=\"ui-li-heading\">#{result.name}</h3><p class=\"ui-li-desc\">#{result.vicinity}</p></li>"
+						result_list.append results.map((r, i) ->
+							r.seq = String.fromCharCode 65 + i # from A
+							"<li><a href=\"#detail\" data-btn-role=\"result\" id=\"#{r.id}\">
+<div style=\"float:left\">#{r.seq}</div><img src=\"#{r.icon}\" class=\"ui-li-icon\">
+<h3 class=\"ui-li-heading\">#{r.name}</h3><p class=\"ui-li-desc\">#{r.vicinity}</p></li>"
 						).join ''
 						# show marking in rev order
 						markers = results.reverse().map (result) ->
@@ -183,9 +207,29 @@ $('#result').bind
 							app.history.refresh() # refresh list
 					@ # end of search callback
 		@ # end of result page show
-	#pagebeforeshow: () ->
+	#pageshow: ->
+		#result_list.listview 'refresh' # end of if OK
 		#$.mobile.changePage '#search' if not app.search_keyword
 		#app.getCurPos ((curlatlng) -> app.result.search curlatlng) if @map? and ((not @map.getCenter()?.equals app.curlatlng) or (maps.result.keyword isnt app.search_keyword))
 		#@ # end of pageshow
+$('#result_list a').live vclick: ->
+	console.log @id
+	app.selected_place = app.result_map[@id]
 
+$('#detail').bind
+	pageshow: ->
+		console.log 'detail', app.selected_place
+		if not app.selected_place
+			app.back()
+			return
+		$('#apt_cancel').bind vclick: -> $('#appointment').dialog('close')
+		svc.getDetails (reference: app.selected_place.reference), (place, status) ->
+			if status is google.maps.places.PlacesServiceStatus.OK
+				map.setCenter place.geometry.location
+				map.setMarkers position: place.geometry.location
+				map.setZoom 15
+				$('#detail_place').text place.name
+
+				console.log place
+			
 console.log 1

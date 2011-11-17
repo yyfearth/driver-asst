@@ -10,20 +10,21 @@
 	<script type="text/javascript" src="http://code.jquery.com/mobile/1.0b1/jquery.mobile-1.0b1.min.js"></script>
 </head>
 <body>
+	<div id="map"></div>
 	<div data-role="page" id="home" class="has-map">
 		<div data-role="header" class="ui-non-nav">
 			<h1>Knight Rider</h1>
 			<a id="logout" href="#login" data-role="button" class="ui-btn-right" data-direction="reverse" data-transition="flip">Logout</a>
 		</div>
 		<div data-role="content">
-			<div id="home_map" data-role="map" class="map"><div id="map"></div></div>
+			<div id="home_map" data-role="map" data-map-zoom="15" class="map"></div>
 			<div id="home_addr" class="map-addr ui-bar-b"></div>
 		</div>
 		<div data-role="footer" data-position="fixed" class="ui-bottom">
 			<a href="#search" id="btn_home_search" data-role="button" data-icon="search" data-iconpos="right" data-transition="slideup">Search Nearby</a>
 		</div>
 	</div>
-	<div data-role="page" id="login" data-rel="dialog">
+	<div data-role="page" id="login">
 		<div data-role="header" class="ui-non-nav">
 			<h1>Login</h1>
 		</div>
@@ -69,36 +70,45 @@
 			<h1>Search Result</h1>
 		</div>
 		<div data-role="content">
-			<div id="result_map" data-role="map" class="map"></div>
+			<div id="result_map" data-role="map" data-map-zoom="12" class="map"></div>
 			<div id="result_addr" class="map-addr ui-bar-b"></div>
 			<ul data-role="listview" id="result_list"></ul>
 		</div>
 	</div>
-	<div data-role="page" id="detail">
+	<div data-role="page" id="detail" class="has-map">
 		<div data-role="header">
 			<h1 id="detail_title">Detail</h1>
 		</div>
 		<div data-role="content">
 			<div id="detail_map" data-role="map" class="map"></div>
-			<div id="detail_addr" class="map-addr ui-bar-b"></div>
+			<div id="detail_place" class="map-addr ui-bar-b"></div>
 			
 		</div>
+		<div data-role="footer" data-position="fixed" class="ui-bottom">
+			<div data-role="navbar">
+				<ul>
+					<li><a href="#appointment" data-transition="slidedown" data-rel="dialog">Appointment</a></li>
+					<li><a href="#direction">Direction</a></li>
+				</ul>
+			</div>
+		</div>
 	</div>
-	<div data-role="page" id="direct" class="has-map">
+	<div data-role="page" id="direction" class="has-map">
 		<div data-role="header">
 			<h1>Direction</h1>
 		</div>
 		<div data-role="content">
-			map
-			<p><a href="#foo">Back to foo</a></p>
+			<div id="direction_map" data-role="map" class="map"></div>
 		</div>
 	</div>
 	<div data-role="page" id="appointment">
-		<div data-role="header">
-			<h1>appointment</h1>
-		</div>
 		<div data-role="content">
-			c
+			<h1>Appointment</h1>
+			form
+			<fieldset class="ui-grid-a">
+				<div class="ui-block-a"><button id="apt_cancel" data-theme="d">Cancel</button></div>
+				<div class="ui-block-b"><button type="submit" data-theme="a">Submit</button></div>
+			</fieldset>
 		</div>
 	</div>
 	<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=true"></script>

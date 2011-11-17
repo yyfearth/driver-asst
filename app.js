@@ -1,5 +1,5 @@
 (function() {
-  var geocoder, map, map_el, svc;
+  var geocoder, map, map_spacers, svbounds, svc;
   var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   window.app = {
     back: function() {
@@ -9,9 +9,14 @@
   location.hash = '#home';
   $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append($('[data-btn-role="back"],[data-btn-role="home"]'));
   $('#search [data-btn-role="home"]').hide();
-  map_el = $('#map');
-  map_el.add(document.querySelectorAll('.map')).height(Math.round(document.body.clientHeight * 0.35));
-  map = app.map = new google.maps.Map(map_el[0], {
+  map_spacers = $(document.querySelectorAll('[data-role="map"]'));
+  map_spacers.add('#map').height(Math.round(document.body.clientHeight * 0.35));
+  $('#home').one({
+    pageshow: function() {
+      return map.el.offset($('#home_map').offset());
+    }
+  });
+  map = app.map = new google.maps.Map($('#map')[0], {
     zoom: 15,
     mapTypeId: google.maps.MapTypeId.ROADMAP,
     navigationControl: true,
@@ -21,15 +26,14 @@
   });
   svc = new google.maps.places.PlacesService(map);
   geocoder = new google.maps.Geocoder();
+  svbounds = new google.maps.LatLngBounds(new google.maps.LatLng(38.052417, -122.728271), new google.maps.LatLng(37.247821, -121.552734));
   (function() {
     var trafficLayer;
-    this.el = map_el;
+    this.el = $('#map');
     trafficLayer = new google.maps.TrafficLayer();
     trafficLayer.setMap(this);
     return $.extend(this, {
       move: __bind(function(id) {
-        this.el.detach();
-        $("#" + id + " .map").append(this.el);
         return this;
       }, this),
       setMarkers: __bind(function(markers_cfg) {
@@ -65,22 +69,28 @@
             var curlatlng;
             curlatlng = new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
             console.log('curlatlng', curlatlng);
-            app.curlatlng = curlatlng;
+            if (!curlatlng.equals(this.getCenter())) {
+              curlatlng.changed = true;
+            }
             if (auto) {
               this.setMarkers(null);
               this.setCenter(curlatlng);
+              map_spacers.each(__bind(function(i, m) {
+                return $(m).css('background-image', "url('https://maps.googleapis.com/maps/api/staticmap?center=" + (curlatlng.lat()) + "," + (curlatlng.lng()) + "&zoom=" + ($(m).attr('data-map-zoom') || 15) + "&size=" + ($(window).width()) + "x" + (this.el.height()) + "&maptype=roadmap&format=png8&sensor=true')");
+              }, this));
               return geocoder.geocode({
                 latLng: curlatlng
               }, __bind(function(results, status) {
                 var _ref;
                 if (status === google.maps.GeocoderStatus.OK) {
-                  return callback.call(this, curlatlng, (_ref = results[0]) != null ? _ref.formatted_address : void 0);
+                  callback.call(this, curlatlng, (_ref = results[0]) != null ? _ref.formatted_address : void 0);
                 } else {
-                  return alert("Geocoder failed due to: " + status + "\n App terminated!");
+                  alert("Geocoder failed due to: " + status + "\n App terminated!");
                 }
+                return this.setCenter(curlatlng);
               }, this));
             } else {
-              return callback.call(this(curlatlng));
+              return callback.call(this, curlatlng);
             }
           }, this)), (function() {
             return alert('App cannot run without geo location!');
@@ -90,8 +100,22 @@
       }, this)
     });
   }).call(map);
+  $('[data-role="page"]').bind({
+    pagebeforeshow: function() {
+      return map.el.css('opacity', 0).show();
+    },
+    pageshow: function() {
+      return map.el[$(this).hasClass('has-map') ? 'show' : 'hide']().css('opacity', 1);
+    }
+  });
   $('#home').bind({
     pageshow: function() {
+      return map.el.show();
+    },
+    pagebeforeshow: function() {
+      if ($('#map', this).length) {
+        return;
+      }
       console.log('home pageshow');
       map.getCurPos(function(curlatlng, addr) {
         $('#home_addr').text(addr);
@@ -102,6 +126,9 @@
         return this.move('home');
       });
       return this;
+    },
+    pagehide: function() {
+      return map.el.hide();
     }
   });
   try {
@@ -137,7 +164,11 @@
   $('#search_history').bind({
     pagecreate: function() {
       this.created = true;
-      return app.history.refresh();
+      app.history.refresh();
+      return new google.maps.places.Autocomplete($('#input_search')[0], {
+        bounds: svbounds,
+        types: ['establishment']
+      });
     }
   });
   $('#search_history').bind('pageshow pagebeforeshow', function() {
@@ -183,8 +214,10 @@
             $('#result_addr').text("" + app.search_keyword + " (" + results.length + ")");
             result_list.height(document.body.clientHeight - result_list.offset().top);
             console.log('search result', results);
+            app.result_map = {};
             results.forEach(function(r) {
               var dlat, dlng;
+              app.result_map[r.id] = r;
               r = r.geometry;
               dlng = r.location.lng() - curlatlng.lng();
               dlat = r.location.lat() - curlatlng.lat();
@@ -194,9 +227,9 @@
               return a.geometry.dist - b.geometry.dist;
             });
             results = results.slice(0, 25);
-            result_list.append(results.map(function(result, i) {
-              result.seq = String.fromCharCode(65 + i);
-              return "<li><a href=\"#detail\" data-btn-role=\"result\" id=\"\"><div style=\"float:left\">" + result.seq + "</div><img src=\"" + result.icon + "\" class=\"ui-li-icon\"><h3 class=\"ui-li-heading\">" + result.name + "</h3><p class=\"ui-li-desc\">" + result.vicinity + "</p></li>";
+            result_list.append(results.map(function(r, i) {
+              r.seq = String.fromCharCode(65 + i);
+              return "<li><a href=\"#detail\" data-btn-role=\"result\" id=\"" + r.id + "\"><div style=\"float:left\">" + r.seq + "</div><img src=\"" + r.icon + "\" class=\"ui-li-icon\"><h3 class=\"ui-li-heading\">" + r.name + "</h3><p class=\"ui-li-desc\">" + r.vicinity + "</p></li>";
             }).join(''));
             markers = results.reverse().map(function(result) {
               return {
@@ -219,6 +252,39 @@
         });
       });
       return this;
+    }
+  });
+  $('#result_list a').live({
+    vclick: function() {
+      console.log(this.id);
+      return app.selected_place = app.result_map[this.id];
+    }
+  });
+  $('#detail').bind({
+    pageshow: function() {
+      console.log('detail', app.selected_place);
+      if (!app.selected_place) {
+        app.back();
+        return;
+      }
+      $('#apt_cancel').bind({
+        vclick: function() {
+          return $('#appointment').dialog('close');
+        }
+      });
+      return svc.getDetails({
+        reference: app.selected_place.reference
+      }, function(place, status) {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          map.setCenter(place.geometry.location);
+          map.setMarkers({
+            position: place.geometry.location
+          });
+          map.setZoom(15);
+          $('#detail_place').text(place.name);
+          return console.log(place);
+        }
+      });
     }
   });
   console.log(1);

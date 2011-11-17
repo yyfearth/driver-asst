@@ -7,6 +7,10 @@
 .ui-li-icon {
 	position: static;
 }
+#map {
+	position: fixed;
+	z-index: 10000;
+}
 .map {
 	width: 100%;
 	min-height: 100px;
@@ -44,6 +48,9 @@
 }
 #btn_home_search .ui-btn-inner {
 	padding: 0.2em;
+}
+#detail [data-type="horizontal"] {
+	
 }
 #result_list {
 	margin: 0;
