@@ -23,7 +23,7 @@
   $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append($('[data-btn-role="back"],[data-btn-role="home"]'));
   $('#search [data-btn-role="home"]').hide();
   h = $(document.body).height();
-  $('.map').height(h * 0.3);
+  $('.map').height(h * 0.35);
   $('#home').bind({
     pagecreate: function() {
       console.log('home pagecreate');
@@ -131,7 +131,6 @@
   });
   window.onbeforeunload = function() {
     localStorage.custom_search_history = JSON.stringify(maps.history);
-    return "Sure to leave Knight Rider?";
   };
   $('#result').bind({
     pagecreate: function() {

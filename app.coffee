@@ -18,7 +18,7 @@ $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append $('[data-bt
 $('#search [data-btn-role="home"]').hide()
 # adjust ref height
 h = $(document.body).height()
-$('.map').height h * 0.3
+$('.map').height h * 0.35
 # end of ui helper
 
 # home page
@@ -100,7 +100,7 @@ $('#custom_search_form').submit () ->
 # save history
 window.onbeforeunload = () ->
 	localStorage.custom_search_history = JSON.stringify maps.history
-	"Sure to leave Knight Rider?"
+	return #"Sure to leave Knight Rider?"
 
 # result page
 $('#result').bind

@@ -1,0 +1,1 @@
+share 1 map for all screen, use a static map picture as a map space holder while screen changing or offline.

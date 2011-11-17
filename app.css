@@ -9,7 +9,6 @@
 }
 .map {
 	width: 100%;
-	height: 45%;
 	min-height: 100px;
 	margin: 0;
 	padding: 0;
@@ -18,6 +17,9 @@
 	height: 1.1em;
 	padding: .2em;
 	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 .has-map .ui-content {
 	padding: 0;
@@ -28,6 +30,12 @@
 .list-none {
 	text-align: center;
 	font-weight: normal;
+}
+#result_list li .ui-btn-text a {
+	padding: 0.3em 15px;
+}
+#result_list li .ui-btn-text img {
+	padding-top: 0.3em;
 }
 #btn_home_search {
 	display: block;
