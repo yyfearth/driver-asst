@@ -4,10 +4,10 @@
 	<title>Knight Rider</title>
 	<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.0rc2/jquery.mobile-1.0rc2.min.css" />
+	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.0b1/jquery.mobile-1.0b1.min.css" />
 	<link rel="stylesheet" href="app.css" />
-	<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.min.js"></script>
-	<script type="text/javascript" src="http://code.jquery.com/mobile/1.0rc2/jquery.mobile-1.0rc2.min.js"></script>
+	<script type="text/javascript" src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
+	<script type="text/javascript" src="http://code.jquery.com/mobile/1.0b1/jquery.mobile-1.0b1.min.js"></script>
 </head>
 <body>
 	<div data-role="page" id="home" class="has-map">
@@ -16,7 +16,7 @@
 			<a id="logout" href="#login" data-role="button" class="ui-btn-right" data-direction="reverse" data-transition="flip">Logout</a>
 		</div>
 		<div data-role="content">
-			<div id="home_map" data-role="map" class="map"></div>
+			<div id="home_map" data-role="map" class="map"><div id="map"></div></div>
 			<div id="home_addr" class="map-addr ui-bar-b"></div>
 		</div>
 		<div data-role="footer" data-position="fixed" class="ui-bottom">
@@ -46,7 +46,7 @@
 				<li><a href="#result" data-btn-role="search" id="search_tow">Towing Station</a></li>
 				<li><a href="#result" data-btn-role="search" id="search_rep">Vehicle Repair Station</a></li>
 				<li data-role="list-divider">Custom Search</li>
-				<li><a href="#search_history">Custom Search and History</a></li>
+				<li><a href="#search_history">Custom Search</a></li>
 			</ul>
 		</div>
 	</div>
