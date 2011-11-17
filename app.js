@@ -134,9 +134,15 @@
     url: '/gapi?weather=san+jose,ca',
     dataType: 'xml',
     success: function(xml, xhr) {
-      var j;
+      var cur, getIcon, j;
       j = xml2json(xml);
-      return console.log('w:', j);
+      cur = j.weather.current_conditions;
+      console.log('w:', j);
+      getIcon = function(d) {
+        return "https://www.google.com" + d.icon.data;
+      };
+      $('#weather').html("<img src=\"" + (getIcon(cur)) + "\"/>" + cur.temp_f.data + "\u00b0F " + cur.condition.data);
+      return this;
     },
     error: function(xhr) {
       return console.log('get weather failed', xhr);

@@ -115,7 +115,11 @@ $.ajax
 	dataType: 'xml'
 	success: (xml, xhr) ->
 		j = xml2json(xml)
+		cur = j.weather.current_conditions
 		console.log 'w:', j
+		getIcon = (d) -> "https://www.google.com" + d.icon.data
+		$('#weather').html "<img src=\"#{getIcon cur}\"/>#{cur.temp_f.data}\u00b0F #{cur.condition.data}" # \u00b0=°
+		@ # end
 	error: (xhr) -> console.log 'get weather failed', xhr
 
 # init history
