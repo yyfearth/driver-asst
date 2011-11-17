@@ -1,3 +1,6 @@
+## Knight Rider
+## Wilson @ yyfearth.com
+# app init
 window.app = # ns
 	back: -> history.go -1
 # init screen
@@ -18,10 +21,12 @@ map = app.map = new google.maps.Map $('#map')[0],
 		style: google.maps.NavigationControlStyle.SMALL
 svc = new google.maps.places.PlacesService map
 geocoder = new google.maps.Geocoder()
+dirSvc = new google.maps.DirectionsService()
+dirRenderer = new google.maps.DirectionsRenderer()
 svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.728271), new google.maps.LatLng(37.247821,-121.552734)
 # ext map
 (-> # @ is map
-	@el = $ '#map';
+	@el = $ '#map'
 	# add traffic
 	trafficLayer = new google.maps.TrafficLayer()
 	trafficLayer.setMap @
@@ -63,7 +68,7 @@ svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.72
 					@setMarkers null
 					# set center
 					@setCenter curlatlng
-					map_spacers.each (i, m) => $(m).css 'background-image', "url('https://maps.googleapis.com/maps/api/staticmap?center=#{curlatlng.lat()},#{curlatlng.lng()}&zoom=#{$(m).attr('data-map-zoom') or 15}&size=#{$(window).width()}x#{@el.height()}&maptype=roadmap&format=png8&sensor=true')"
+					map_spacers.each (i, m) => $(m).css 'background-image', "url('https:#maps.googleapis.com/maps/api/staticmap?center=#{curlatlng.lat()},#{curlatlng.lng()}&zoom=#{$(m).attr('data-map-zoom') or 15}&size=#{$(window).width()}x#{@el.height()}&maptype=roadmap&format=png8&sensor=true')"
 					# get addr
 					geocoder.geocode latLng: curlatlng, (results, status) =>
 						if status is google.maps.GeocoderStatus.OK
@@ -86,7 +91,7 @@ $('[data-role="page"]').bind
 # home page
 $('#home').bind
 	pageshow: ->
-		map.el.show()
+		#map.el.show()
 	pagebeforeshow: ->
 		return if $('#map', @).length
 		console.log 'home pageshow'
@@ -99,7 +104,19 @@ $('#home').bind
 		#maps.getCurPos ((curlatlng) -> @map.mark curlatlng) if @map? and not @map.getCenter()?.equals curlatlng
 		@ # end of home page show
 	pagehide: ->
-		map.el.hide()
+		#map.el.hide()
+
+
+# util js
+`function xml2json(b,g,h){function j(b,g){if(!b)return null;var c="",a=null;if(b.childNodes&&0<b.childNodes.length)for(var i=0;i<b.childNodes.length;i++){var d=b.childNodes[i],f=d.nodeType,e=d.localName||d.nodeName||"",h=d.text||d.nodeValue||"";if(8!=f)if(3==f||4==f||!e)c+=h.replace(/^\s+|\s+$/g,"");else if(a=a||{},a[e]){if(!(a[e]instanceof Array)||!a[e].length)a[e]=[a[e]];a[e].push(j(d,!0))}else a[e]=j(d,!1)}if(b.attributes&&!k&&0<b.attributes.length){a=a||{};for(d=0;d<b.attributes.length;d++)e=b.attributes[d],f=e.name||"",e=e.value,a[f]?(!(a[f]instanceof Array)&&a[f].length&&(a[f]=[a[f]]),a[f].push(e)):a[f]=e}if(a){if(""!=c){d=new String(c);for(i in a)d[i]=a[i];a=d}if(c=a.text?("object"==typeof a.text?a.text:[a.text||""]).concat([c]):c)a.text=c;c=""}a=a||c;if(l){c&&(a={});if(c=a.text||c||"")a.text=c;!g&&!(a instanceof Array)&&(a=[a])}return a}var l=g,k=h;if(!b)return{};"string"==typeof b&&(b=q(b));if(b.nodeType){if(3==b.nodeType||4==b.nodeType)return b.nodeValue;b=9==b.nodeType?b.documentElement:b;g=j(b,!0);b=b=null;return g}}function q(b){var g;try{var h=new DOMParser;h.async=!1;g=h.parseFromString(b,"text/xml")}catch(j){throw Error("Error parsing XML string");}return g}`
+# weather api
+$.ajax
+	url:'/gapi?weather=san+jose,ca'
+	dataType: 'xml'
+	success: (xml, xhr) ->
+		j = xml2json(xml)
+		console.log 'w:', j
+	error: (xhr) -> console.log 'get weather failed', xhr
 
 # init history
 try
@@ -129,7 +146,7 @@ $('#search_history').bind
 	pagecreate: ->
 		@created = true
 		app.history.refresh() # for the 1st show
-		new google.maps.places.Autocomplete $('#input_search')[0],
+		new google.maps.places.Autocomplete $('#input_search')[0]
 			bounds: svbounds
 			types: ['establishment']
 $('#search_history').bind 'pageshow pagebeforeshow', -> $('#history_list').listview 'refresh' if @created
@@ -193,12 +210,12 @@ $('#result').bind
 						# show marking in rev order
 						markers = results.reverse().map (result) ->
 							position: result.geometry.location
-							icon: "https://www.google.com/mapfiles/marker#{result.seq}.png"
+							icon: "https:#www.google.com/mapfiles/marker#{result.seq}.png"
 						result_list.listview 'refresh' # end of if OK
 						# add marker
 						markers.push
-							position: curlatlng,
-							icon: 'https://www.google.com/mapfiles/arrow.png'
+							position: curlatlng
+							icon: 'https:#www.google.com/mapfiles/arrow.png'
 						# set markers to map
 						map.setMarkers markers
 						# save history
@@ -218,7 +235,7 @@ $('#result_list a').live vclick: ->
 
 $('#detail').bind
 	pageshow: ->
-		console.log 'detail', app.selected_place
+		console.log 'detailof', app.selected_place
 		if not app.selected_place
 			app.back()
 			return
@@ -229,7 +246,26 @@ $('#detail').bind
 				map.setMarkers position: place.geometry.location
 				map.setZoom 15
 				$('#detail_place').text place.name
-
+				$('#detial_info').text JSON.stringify place, null, '  '
 				console.log place
-			
+
+$('#direction').bind
+	pageshow: ->
+		map.getCurPos (curlatlng, addr) ->
+			@setZoom 14
+			dirSvc.route (
+				origin: addr
+				destination: app.selected_place.vicinity # formatted_address
+				travelMode: google.maps.DirectionsTravelMode.DRIVING # or BICYCLING WALKING
+				unitSystem: google.maps.DirectionsUnitSystem.IMPERIAL # or METRIC
+				provideRouteAlternatives: true
+			), (dirResult, dirStatus) ->
+				if dirStatus is google.maps.DirectionsStatus.OK
+					# Show directions
+					dirRenderer.setMap map
+					dirRenderer.setPanel $('#direction_panel')[0]
+					dirRenderer.setDirections(dirResult)
+				else  alert('Directions failed: ' + dirStatus)
+	pagehide: ->
+		dirRenderer.setMap null
 console.log 1

@@ -16,6 +16,7 @@
 	min-height: 100px;
 	margin: 0;
 	padding: 0;
+	background-position: center;
 }
 .map-addr {
 	height: 1.1em;

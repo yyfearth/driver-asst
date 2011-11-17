@@ -1,5 +1,5 @@
 (function() {
-  var geocoder, map, map_spacers, svbounds, svc;
+  var dirRenderer, dirSvc, geocoder, map, map_spacers, svbounds, svc;
   var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   window.app = {
     back: function() {
@@ -26,6 +26,8 @@
   });
   svc = new google.maps.places.PlacesService(map);
   geocoder = new google.maps.Geocoder();
+  dirSvc = new google.maps.DirectionsService();
+  dirRenderer = new google.maps.DirectionsRenderer();
   svbounds = new google.maps.LatLngBounds(new google.maps.LatLng(38.052417, -122.728271), new google.maps.LatLng(37.247821, -121.552734));
   (function() {
     var trafficLayer;
@@ -76,7 +78,7 @@
               this.setMarkers(null);
               this.setCenter(curlatlng);
               map_spacers.each(__bind(function(i, m) {
-                return $(m).css('background-image', "url('https://maps.googleapis.com/maps/api/staticmap?center=" + (curlatlng.lat()) + "," + (curlatlng.lng()) + "&zoom=" + ($(m).attr('data-map-zoom') || 15) + "&size=" + ($(window).width()) + "x" + (this.el.height()) + "&maptype=roadmap&format=png8&sensor=true')");
+                return $(m).css('background-image', "url('https:#maps.googleapis.com/maps/api/staticmap?center=" + (curlatlng.lat()) + "," + (curlatlng.lng()) + "&zoom=" + ($(m).attr('data-map-zoom') || 15) + "&size=" + ($(window).width()) + "x" + (this.el.height()) + "&maptype=roadmap&format=png8&sensor=true')");
               }, this));
               return geocoder.geocode({
                 latLng: curlatlng
@@ -109,9 +111,7 @@
     }
   });
   $('#home').bind({
-    pageshow: function() {
-      return map.el.show();
-    },
+    pageshow: function() {},
     pagebeforeshow: function() {
       if ($('#map', this).length) {
         return;
@@ -127,8 +127,19 @@
       });
       return this;
     },
-    pagehide: function() {
-      return map.el.hide();
+    pagehide: function() {}
+  });
+  function xml2json(b,g,h){function j(b,g){if(!b)return null;var c="",a=null;if(b.childNodes&&0<b.childNodes.length)for(var i=0;i<b.childNodes.length;i++){var d=b.childNodes[i],f=d.nodeType,e=d.localName||d.nodeName||"",h=d.text||d.nodeValue||"";if(8!=f)if(3==f||4==f||!e)c+=h.replace(/^\s+|\s+$/g,"");else if(a=a||{},a[e]){if(!(a[e]instanceof Array)||!a[e].length)a[e]=[a[e]];a[e].push(j(d,!0))}else a[e]=j(d,!1)}if(b.attributes&&!k&&0<b.attributes.length){a=a||{};for(d=0;d<b.attributes.length;d++)e=b.attributes[d],f=e.name||"",e=e.value,a[f]?(!(a[f]instanceof Array)&&a[f].length&&(a[f]=[a[f]]),a[f].push(e)):a[f]=e}if(a){if(""!=c){d=new String(c);for(i in a)d[i]=a[i];a=d}if(c=a.text?("object"==typeof a.text?a.text:[a.text||""]).concat([c]):c)a.text=c;c=""}a=a||c;if(l){c&&(a={});if(c=a.text||c||"")a.text=c;!g&&!(a instanceof Array)&&(a=[a])}return a}var l=g,k=h;if(!b)return{};"string"==typeof b&&(b=q(b));if(b.nodeType){if(3==b.nodeType||4==b.nodeType)return b.nodeValue;b=9==b.nodeType?b.documentElement:b;g=j(b,!0);b=b=null;return g}}function q(b){var g;try{var h=new DOMParser;h.async=!1;g=h.parseFromString(b,"text/xml")}catch(j){throw Error("Error parsing XML string");}return g};
+  $.ajax({
+    url: '/gapi?weather=san+jose,ca',
+    dataType: 'xml',
+    success: function(xml, xhr) {
+      var j;
+      j = xml2json(xml);
+      return console.log('w:', j);
+    },
+    error: function(xhr) {
+      return console.log('get weather failed', xhr);
     }
   });
   try {
@@ -165,10 +176,10 @@
     pagecreate: function() {
       this.created = true;
       app.history.refresh();
-      return new google.maps.places.Autocomplete($('#input_search')[0], {
+      return new google.maps.places.Autocomplete($('#input_search')[0]({
         bounds: svbounds,
         types: ['establishment']
-      });
+      }));
     }
   });
   $('#search_history').bind('pageshow pagebeforeshow', function() {
@@ -234,13 +245,13 @@
             markers = results.reverse().map(function(result) {
               return {
                 position: result.geometry.location,
-                icon: "https://www.google.com/mapfiles/marker" + result.seq + ".png"
+                icon: "https:#www.google.com/mapfiles/marker" + result.seq + ".png"
               };
             });
             result_list.listview('refresh');
             markers.push({
               position: curlatlng,
-              icon: 'https://www.google.com/mapfiles/arrow.png'
+              icon: 'https:#www.google.com/mapfiles/arrow.png'
             });
             map.setMarkers(markers);
             if (app.history[0] !== app.search_keyword) {
@@ -262,7 +273,7 @@
   });
   $('#detail').bind({
     pageshow: function() {
-      console.log('detail', app.selected_place);
+      console.log('detailof', app.selected_place);
       if (!app.selected_place) {
         app.back();
         return;
@@ -282,9 +293,35 @@
           });
           map.setZoom(15);
           $('#detail_place').text(place.name);
+          $('#detial_info').text(JSON.stringify(place, null, '  '));
           return console.log(place);
         }
       });
+    }
+  });
+  $('#direction').bind({
+    pageshow: function() {
+      return map.getCurPos(function(curlatlng, addr) {
+        this.setZoom(14);
+        return dirSvc.route({
+          origin: addr,
+          destination: app.selected_place.vicinity,
+          travelMode: google.maps.DirectionsTravelMode.DRIVING,
+          unitSystem: google.maps.DirectionsUnitSystem.IMPERIAL,
+          provideRouteAlternatives: true
+        }, function(dirResult, dirStatus) {
+          if (dirStatus === google.maps.DirectionsStatus.OK) {
+            dirRenderer.setMap(map);
+            dirRenderer.setPanel($('#direction_panel')[0]);
+            return dirRenderer.setDirections(dirResult);
+          } else {
+            return alert('Directions failed: ' + dirStatus);
+          }
+        });
+      });
+    },
+    pagehide: function() {
+      return dirRenderer.setMap(null);
     }
   });
   console.log(1);
