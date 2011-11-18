@@ -150,7 +150,7 @@ $('#search_history').bind
 	pagecreate: ->
 		@created = true
 		app.history.refresh() # for the 1st show
-		new google.maps.places.Autocomplete $('#input_search')[0]
+		new google.maps.places.Autocomplete $('#input_search')[0],
 			bounds: svbounds
 			types: ['establishment']
 $('#search_history').bind 'pageshow pagebeforeshow', -> $('#history_list').listview 'refresh' if @created

@@ -182,10 +182,10 @@
     pagecreate: function() {
       this.created = true;
       app.history.refresh();
-      return new google.maps.places.Autocomplete($('#input_search')[0]({
+      return new google.maps.places.Autocomplete($('#input_search')[0], {
         bounds: svbounds,
         types: ['establishment']
-      }));
+      });
     }
   });
   $('#search_history').bind('pageshow pagebeforeshow', function() {
