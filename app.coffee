@@ -65,7 +65,7 @@ svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.72
 					@setMarkers null
 					# set center
 					@setCenter curlatlng
-					map_spacers.each (i, m) => $(m).css 'background-image', "url('https:#maps.googleapis.com/maps/api/staticmap?center=#{curlatlng.lat()},#{curlatlng.lng()}&zoom=#{$(m).attr('data-map-zoom') or 15}&size=#{$(window).width()}x#{@el.height()}&maptype=roadmap&format=png8&sensor=true')"
+					map_spacers.each (i, m) => $(m).css 'background-image', "url('https://maps.googleapis.com/maps/api/staticmap?center=#{curlatlng.lat()},#{curlatlng.lng()}&zoom=#{$(m).attr('data-map-zoom') or 15}&size=#{$(window).width()}x#{@el.height()}&maptype=roadmap&format=png8&sensor=true')"
 					# get addr
 					geocoder.geocode latLng: curlatlng, (results, status) =>
 						if status is google.maps.GeocoderStatus.OK
@@ -190,7 +190,10 @@ $('#result').bind
 				keyword: app.search_keyword
 				#types: ['store']
 				(results, status) -> # search callback
-					if status is google.maps.places.PlacesServiceStatus.OK
+					if status is google.maps.places.PlacesServiceStatus.ZERO_RESULTS
+						alert 'Zero Result'
+						app.back()
+					else if status is google.maps.places.PlacesServiceStatus.OK
 						$('#result_addr').text "#{app.search_keyword} (#{results.length})"
 						result_list.height document.body.clientHeight - result_list.offset().top
 						console.log 'search result', results
@@ -214,18 +217,21 @@ $('#result').bind
 						# show marking in rev order
 						markers = results.reverse().map (result) ->
 							position: result.geometry.location
-							icon: "https:#www.google.com/mapfiles/marker#{result.seq}.png"
-						result_list.listview 'refresh' # end of if OK
+							icon: "https://www.google.com/mapfiles/marker#{result.seq}.png"
+							title: result.name
+						result_list.listview 'refresh'
 						# add marker
 						markers.push
 							position: curlatlng
-							icon: 'https:#www.google.com/mapfiles/arrow.png'
+							icon: 'https://www.google.com/mapfiles/arrow.png'
+							title: 'You are here'
 						# set markers to map
 						map.setMarkers markers
 						# save history
 						if app.history[0] isnt app.search_keyword
 							app.history.unshift app.search_keyword
 							app.history.refresh() # refresh list
+					else alert 'Search Error'
 					@ # end of search callback
 		@ # end of result page show
 	#pageshow: ->
