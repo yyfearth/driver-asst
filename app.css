@@ -58,3 +58,6 @@
 	overflow: hidden;
 	overflow-y: scroll;
 }
+#weather, #traffic_alerts {
+	height: 100px;
+}

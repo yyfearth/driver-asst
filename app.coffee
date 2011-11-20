@@ -42,10 +42,7 @@ svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.72
 			else if not $.isArray markers_cfg
 				markers_cfg = [markers_cfg]
 			# clear old markers
-			@markers.forEach ((marker) => # whether markers is null
-				marker.setMap null
-				delete marker
-			) if @markers?
+			@markers.forEach ((marker) -> marker.setMap null) if @markers?
 			# set new markers
 			if markers_cfg? # not null
 				@markers = markers_cfg.map (cfg) ->
@@ -118,7 +115,10 @@ $.ajax
 		cur = j.weather.current_conditions
 		console.log 'w:', j
 		getIcon = (d) -> "https://www.google.com" + d.icon.data
-		$('#weather').html "<img src=\"#{getIcon cur}\"/>#{cur.temp_f.data}\u00b0F #{cur.condition.data}" # \u00b0=°
+		el = $('#weather').html "<img src=\"#{getIcon cur}\"/>#{cur.temp_f.data}\u00b0F #{cur.condition.data} " # \u00b0=°
+		el.append (j.weather.forecast_conditions.map (c) ->
+			"<img src=\"#{getIcon c}\"/>#{c.day_of_week.data} #{c.high.data}/#{c.low.data}\u00b0F "
+		).join ''
 		@ # end
 	error: (xhr) -> console.log 'get weather failed', xhr
 
