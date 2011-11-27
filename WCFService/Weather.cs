@@ -8,7 +8,7 @@ using System.Web.Script.Serialization;
 namespace KnightRider {
 	public class Weather {
 		// Weather API: http://www.google.com/ig/api?weather=san+jose,ca
-		public string Xml2Json(string xml){
+		/*public string Xml2Json(string xml){
 		// To convert an XML node contained in string xml into a JSON string   
 		XmlDocument doc = new XmlDocument();
 		doc.LoadXml(xml);
@@ -19,6 +19,6 @@ namespace KnightRider {
 		// XmlDocument doc = (XmlDocument)JsonConvert.DeserializeXmlNode(json);
 
 		// $.ajax({url:'/gapi?weather=san+jose,ca', complete:function(xhr){console.log(xhr.responseText)}})
-		}
+		}*/
 	}
 }
