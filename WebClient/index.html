@@ -20,19 +20,47 @@
 			<div id="home_map" data-role="map" data-map-zoom="15" class="map"></div>
 			<div id="home_addr" class="map-addr ui-bar-b"></div>
 			<div id="weather"></div>
-			<div id="traffic_alerts">traffic_alerts</div>
+			<ul data-role="listview" id="alerts">
+				<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>
+			</ul>
 		</div>
 		<div data-role="footer" data-position="fixed" class="ui-bottom">
 			<a href="#search" id="btn_home_search" data-role="button" data-icon="search" data-iconpos="right" data-transition="slideup">Search Nearby</a>
 		</div>
 	</div>
-	<div data-role="page" id="login">
-		<div data-role="header" class="ui-non-nav">
-			<h1>Login</h1>
-		</div>
+	<div data-role="page" id="login" data-theme="a">
+		<div data-role="header" id="login_header" class="ui-non-nav"></div>
 		<div data-role="content">
+			<form id="login_form">
+			<div data-role="fieldcontain">
+				<label for="user">Username/email:</label>
+				<input type="text" name="user" id="user" placeholder="Username or Email" />
+				<br/>
+				<label for="password">Password:</label>
+				<input type="password" name="password" id="password" placeholder="Enter your Password" />
+				<br/>
+				<label for="autologin">Auto Login:</label>
+				<select name="slider" id="autologin" data-role="slider">
+					<option value="off">Off</option>
+					<option value="on" selected="selected">On</option>
+				</select>
+			</div>
+			<fieldset class="ui-grid-a">
+				<div class="ui-block-a"><a id="reg" data-role="button" href="#reg" data-transition="slidedown" data-rel="dialog">Register</a></div>
+				<div class="ui-block-b"><button type="submit" data-theme="b">Login</button></div>
+			</fieldset>
+			</form>
+			<!--<a href="#home" data-role="button" data-transition="flip">Login</a>-->
+		</div>
+	</div>
+	<div data-role="page" id="reg">
+		<div data-role="content">
+			<h1>Register</h1>
 			form
-			<a href="#home" data-role="button" data-transition="flip">Login</a>
+			<fieldset class="ui-grid-a">
+				<div class="ui-block-a"><a data-role="button" href="#login">Cancel</a></div>
+				<div class="ui-block-b"><button type="submit" data-theme="a">Register</button></div>
+			</fieldset>
 		</div>
 	</div>
 	<div data-role="page" id="search">

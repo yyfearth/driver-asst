@@ -115,9 +115,10 @@ $.ajax
 		cur = j.weather.current_conditions
 		console.log 'w:', j
 		getIcon = (d) -> "https://www.google.com" + d.icon.data
-		el = $('#weather').html "<img src=\"#{getIcon cur}\"/>#{cur.temp_f.data}\u00b0F #{cur.condition.data} " # \u00b0=°
+		el = $('#weather').html "<div id=\"weather_now\" class=\"weather\">
+<img src=\"#{getIcon cur}\"/>#{cur.condition.data}<br/>#{cur.temp_f.data}\u00b0F</div>" # \u00b0=°
 		el.append (j.weather.forecast_conditions.map (c) ->
-			"<img src=\"#{getIcon c}\"/>#{c.day_of_week.data} #{c.high.data}/#{c.low.data}\u00b0F "
+			"<div class=\"weather\"><img src=\"#{getIcon c}\"/>#{c.day_of_week.data} #{c.high.data}/#{c.low.data}\u00b0F</div>"
 		).join ''
 		@ # end
 	error: (xhr) -> console.log 'get weather failed', xhr
@@ -211,7 +212,7 @@ $('#result').bind
 						result_list.append results.map((r, i) ->
 							r.seq = String.fromCharCode 65 + i # from A
 							"<li><a href=\"#detail\" data-btn-role=\"result\" id=\"#{r.id}\">
-<div style=\"float:left\">#{r.seq}</div><img src=\"#{r.icon}\" class=\"ui-li-icon\">
+<div style=\"float:left\">#{r.seq}</div><img src=\"#{r.icon?.replace /^http:/, 'https:'}\" class=\"ui-li-icon\">
 <h3 class=\"ui-li-heading\">#{r.name}</h3><p class=\"ui-li-desc\">#{r.vicinity}</p></li>"
 						).join ''
 						# show marking in rev order
@@ -234,15 +235,17 @@ $('#result').bind
 					else alert 'Search Error'
 					@ # end of search callback
 		@ # end of result page show
-	#pageshow: ->
-		#result_list.listview 'refresh' # end of if OK
-		#$.mobile.changePage '#search' if not app.search_keyword
-		#app.getCurPos ((curlatlng) -> app.result.search curlatlng) if @map? and ((not @map.getCenter()?.equals app.curlatlng) or (maps.result.keyword isnt app.search_keyword))
-		#@ # end of pageshow
+
+proc_rating = (rating) ->
+	rating = Number(rating)
+	stars = rating.toFixed(1)
+	i = rating | 0
+	stars += ' ' + new Array(i + 1).join('<img src="res/star.png"/>') if i > 0
+	stars += '<img src="res/halfstar.png"/>' if rating - i > 0.4
+	stars # end of proc rating
 $('#result_list a').live vclick: ->
 	console.log @id
 	app.selected_place = app.result_map[@id]
-
 $('#detail').bind
 	pageshow: ->
 		console.log 'detailof', app.selected_place
@@ -256,13 +259,17 @@ $('#detail').bind
 				map.setMarkers position: place.geometry.location
 				map.setZoom 15
 				$('#detail_place').text place.name
-				$('#detial_info').text JSON.stringify place, null, '  '
+				$('#detial_info').html "<ul>
+<li>#{place.formatted_address}</li><li>#{place.formatted_phone_number}</li>
+<li>#{place.types.join(', ').replace(/_/g, ' ').toUpperCase()}</li>
+<li>#{if place.rating? then proc_rating(place.rating) else '(No Rating Data)' }</li>
+<li><a href=\"#{place.website or place.url}\" target=\"_blank\">
+#{if place.website? then 'Visit its Website' else 'View on Google Place'}</a></li></ul>"
 				console.log place
 
 $('#direction').bind
 	pageshow: ->
 		map.getCurPos (curlatlng, addr) ->
-			@setZoom 14
 			dirSvc.route (
 				origin: addr
 				destination: app.selected_place.vicinity # formatted_address
@@ -278,4 +285,4 @@ $('#direction').bind
 				else  alert('Directions failed: ' + dirStatus)
 	pagehide: ->
 		dirRenderer.setMap null
-console.log 1
+console.log 2

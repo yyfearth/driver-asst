@@ -36,6 +36,10 @@
 	text-align: center;
 	font-weight: normal;
 }
+#login_header {
+	background: black url(res/kr.jpg) center -14px no-repeat;
+	height: 70px;
+}
 #result_list li .ui-btn-text a {
 	padding: 0.3em 15px;
 }
@@ -59,10 +63,42 @@
 	overflow: hidden;
 	overflow-y: scroll;
 }
-#weather, #traffic_alerts {
-	height: 85px;
-	font-size: 12px;
+#weather {
+	height: 40px;
+	background-color: white;
+	padding: 3px;
 }
-#traffic_alerts {
+.weather {
+	display: inline-block;
+	font-size: 12px;
+	height: 20px;
+	margin-right: 1%;
+	line-height: 20px;
+	vertical-align: center;
+	overflow: hidden;
+	width: 30%;
+}
+.weather img {
+	float: left;
+	width: 20px;
+	height: 20px;
+	margin-right: 2px;
+}
+#weather_now {
+	float: left;
+	display: inline-block;
+	padding-right: 2px;
+	font-size: 1em;
+	height: 40px;
+	overflow: hidden;
+	line-height: 20px;
+	vertical-align: center;
+}
+#weather_now img {
+	width: 40px;
+	height: 40px;
+}
+#alerts {
 	height: 64px;
+	margin: 0;
 }
