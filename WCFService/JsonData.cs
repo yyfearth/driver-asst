@@ -30,6 +30,7 @@ namespace KnightRider {
 		}
 		public string email { get; set; }
 		public string username { get; set; }
+		public string password { get; set; }
 		public Fullname fullname { get; set; }
 		public string phone { get; set; }
 		public UserType type { get; set; }
@@ -76,11 +77,12 @@ namespace KnightRider {
 		Canceled = 9,
 	}
 	public class AppointmentJson : DataJson {
+		// place user contact datetime message status
 		public class Contact {
 			public string name { get; set; }
 			public string phone { get; set; }
 		}
-		public uint place { get; set; }
+		public string place { get; set; } // GID
 		public uint user { get; set; }
 		public Contact contact { get; set; }
 		public DateTime datetime { get; set; }
@@ -98,13 +100,16 @@ namespace KnightRider {
 	}
 	public enum AlertStatus {
 		Invalid = 0,
-		Saved = 1,
-		Started = 2,
-		Expired = 3,
+		Normal = 1,
+		// these shoud be auto calc, and auto clear after expire
+		//Saved = 1,
+		//Started = 2,
+		//Expired = 3,
 		// todo: add more status
 		Canceled = 9,
 	}
 	public class AlertJson : DataJson {
+		// datetime expired summary message importance type status
 		public DateTime datetime { get; set; }
 		public DateTime expired { get; set; }
 		public string summary { get; set; }
