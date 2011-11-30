@@ -1,0 +1,1 @@
+﻿<%@ ServiceHost Language="C#" Debug="true" Service="KnightRider.Alerts" CodeBehind="Alerts.svc.cs" %>

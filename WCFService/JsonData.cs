@@ -11,14 +11,14 @@ namespace KnightRider {
 		private dynamic ExtraData { get; set; } // json
 	}
 	// user
-	public enum UserType {
+	public enum UserType { // 1 should be the default correct value
 		Invalid = 0,
 		Unspecified = 1,
 		Driver = 2,
 		VIP = 3,
 		// todo: add more types
 	}
-	public enum UserStatus {
+	public enum UserStatus { // 1 should be the default correct value
 		Invalid = 0,
 		Normal = 1,
 		// todo: add more status
@@ -27,9 +27,11 @@ namespace KnightRider {
 		public class Fullname {
 			public string first { get; set; }
 			public string last { get; set; }
+			public override string ToString() {
+				return first + ' ' + last;
+			}
 		}
 		public string email { get; set; }
-		public string username { get; set; }
 		public string password { get; set; }
 		public Fullname fullname { get; set; }
 		public string phone { get; set; }
@@ -37,11 +39,12 @@ namespace KnightRider {
 		public UserStatus status { get; set; }
 	}
 	// place
-	public enum PlaceKRType {
+	public enum PlaceKRType { // 1 should be the default correct value
 		Invalid = 0,
+		Unspecified = 1,
 		// todo: add more types
 	}
-	public enum PlaceStatus {
+	public enum PlaceStatus { // 1 should be the default correct value
 		Invalid = 0,
 		IDOnly = 1, // only has gid
 		Parsed = 2, // have parsed raw data
@@ -66,7 +69,7 @@ namespace KnightRider {
 		public dynamic RawData { get; set; } // json
 	}
 	// appointment
-	public enum AppointmentStatus {
+	public enum AppointmentStatus { // 1 should be the default correct value
 		Invalid = 0,
 		Created = 1, // init
 		Received = 2,
@@ -90,7 +93,7 @@ namespace KnightRider {
 		public AppointmentStatus status { get; set; }
 	}
 	// alerts
-	public enum AlertType {
+	public enum AlertType { // 1 should be the default correct value
 		Invalid = 0,
 		Unspecified = 1,
 		Weather = 2,
@@ -98,7 +101,7 @@ namespace KnightRider {
 		Service = 4,
 		// todo: add more types
 	}
-	public enum AlertStatus {
+	public enum AlertStatus { // 1 should be the default correct value
 		Invalid = 0,
 		Normal = 1,
 		// these shoud be auto calc, and auto clear after expire

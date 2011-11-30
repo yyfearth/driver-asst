@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en-US">
 <head>
 	<title>Knight Rider</title>
 	<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -31,26 +31,27 @@
 	<div data-role="page" id="login" data-theme="a">
 		<div data-role="header" id="login_header" class="ui-non-nav"></div>
 		<div data-role="content">
-			<form id="login_form">
-			<div data-role="fieldcontain">
-				<label for="user">Username/email:</label>
-				<input type="text" name="user" id="user" placeholder="Username or Email" />
+			<div id="login_form_warp">
+				<form id="login_form" data-ajax="false">
+				<label for="user">Email:</label>
+				<input type="email" name="email" id="email" placeholder="Enter your Email" required="required" />
 				<br/>
 				<label for="password">Password:</label>
-				<input type="password" name="password" id="password" placeholder="Enter your Password" />
+				<input type="password" name="password" id="password" placeholder="Enter your Password" required="required" pattern=".{6,}" />
 				<br/>
-				<label for="autologin">Auto Login:</label>
-				<select name="slider" id="autologin" data-role="slider">
-					<option value="off">Off</option>
-					<option value="on" selected="selected">On</option>
-				</select>
+				<div data-role="fieldcontain">
+					<label for="autologin">Auto Login:</label>
+					<select name="slider" id="autologin" data-role="slider">
+						<option value="off">Off</option>
+						<option value="on" selected="selected">On</option>
+					</select>
+				</div>
+				<fieldset class="ui-grid-a">
+					<div class="ui-block-a"><a id="btn_reg" data-role="button" href="#reg" data-transition="slidedown" data-rel="dialog">Register</a></div>
+					<div class="ui-block-b"><button id="btn_login" type="submit" data-theme="b">Login</button></div>
+				</fieldset>
+				</form>
 			</div>
-			<fieldset class="ui-grid-a">
-				<div class="ui-block-a"><a id="reg" data-role="button" href="#reg" data-transition="slidedown" data-rel="dialog">Register</a></div>
-				<div class="ui-block-b"><button type="submit" data-theme="b">Login</button></div>
-			</fieldset>
-			</form>
-			<!--<a href="#home" data-role="button" data-transition="flip">Login</a>-->
 		</div>
 	</div>
 	<div data-role="page" id="reg">
@@ -143,7 +144,7 @@
 			</fieldset>
 		</div>
 	</div>
-	<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=true"></script>
+	<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=true&hl=en-US"></script>
 	<script type="text/javascript" src="app.js"></script>
 </body>
 </html>

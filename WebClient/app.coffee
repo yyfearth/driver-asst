@@ -4,7 +4,7 @@
 window.app = # ns
 	back: -> history.go -1
 # init screen
-location.hash = '#home'
+location.hash = if sid?.length is 32 then '#home' else '#login'
 # add back and home button to every page except home
 $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append $('[data-btn-role="back"],[data-btn-role="home"]')
 $('#search [data-btn-role="home"]').hide()
@@ -84,12 +84,14 @@ $('[data-role="page"]').bind
 	pageshow: ->
 		map.el[if $(@).hasClass('has-map') then 'show' else 'hide']().css('opacity', 1)
 
-
 # home page
 $('#home').bind
 	pageshow: ->
 		#map.el.show()
 	pagebeforeshow: ->
+		if (not sid? or sid.length isnt 32)
+			$.mobile.changePage '#login', transition: 'none'
+			return
 		return if $('#map', @).length
 		console.log 'home pageshow'
 		# init nav api and home page
@@ -103,12 +105,83 @@ $('#home').bind
 	pagehide: ->
 		#map.el.hide()
 
-
 # util js
 `function xml2json(b,g,h){function j(b,g){if(!b)return null;var c="",a=null;if(b.childNodes&&0<b.childNodes.length)for(var i=0;i<b.childNodes.length;i++){var d=b.childNodes[i],f=d.nodeType,e=d.localName||d.nodeName||"",h=d.text||d.nodeValue||"";if(8!=f)if(3==f||4==f||!e)c+=h.replace(/^\s+|\s+$/g,"");else if(a=a||{},a[e]){if(!(a[e]instanceof Array)||!a[e].length)a[e]=[a[e]];a[e].push(j(d,!0))}else a[e]=j(d,!1)}if(b.attributes&&!k&&0<b.attributes.length){a=a||{};for(d=0;d<b.attributes.length;d++)e=b.attributes[d],f=e.name||"",e=e.value,a[f]?(!(a[f]instanceof Array)&&a[f].length&&(a[f]=[a[f]]),a[f].push(e)):a[f]=e}if(a){if(""!=c){d=new String(c);for(i in a)d[i]=a[i];a=d}if(c=a.text?("object"==typeof a.text?a.text:[a.text||""]).concat([c]):c)a.text=c;c=""}a=a||c;if(l){c&&(a={});if(c=a.text||c||"")a.text=c;!g&&!(a instanceof Array)&&(a=[a])}return a}var l=g,k=h;if(!b)return{};"string"==typeof b&&(b=q(b));if(b.nodeType){if(3==b.nodeType||4==b.nodeType)return b.nodeValue;b=9==b.nodeType?b.documentElement:b;g=j(b,!0);b=b=null;return g}}function q(b){var g;try{var h=new DOMParser;h.async=!1;g=h.parseFromString(b,"text/xml")}catch(j){throw Error("Error parsing XML string");}return g}`
+`function hash(b){function i(b,c){var d=(b&65535)+(c&65535);return(b>>16)+(c>>16)+(d>>16)<<16|d&65535}var h;h=[];for(var e=0;e<b.length*8;e+=8)h[e>>5]|=(b.charCodeAt(e/8)&255)<<24-e%32;b=b.length*8;h[b>>5]|=128<<24-b%32;h[(b+64>>9<<4)+15]=b;for(var b=Array(80),e=1732584193,d=-271733879,f=-1732584194,g=271733878,j=-1009589776,k=0;k<h.length;k+=16){for(var l=e,m=d,n=f,o=g,p=j,c=0;c<80;c++){b[c]=c<16?h[k+c]:(b[c-3]^b[c-8]^b[c-14]^b[c-16])<<1|(b[c-3]^b[c-8]^b[c-14]^b[c-16])>>>31;var q=i(i(e<<5|e>>>27,c<20?d&f|~d&g:c<40?d^f^g:c<60?d&f|d&g|f&g:d^f^g),i(i(j,b[c]),c<20?1518500249:c<40?1859775393:c<60?-1894007588:-899497514)),j=g,g=f,f=d<<30|d>>>2,d=e,e=q}e=i(e,l);d=i(d,m);f=i(f,n);g=i(g,o);j=i(j,p)}h=[e,d,f,g,j];b="";for(e=32;--e;){for(d=a=0;d<h.length;d++)a+=(h[d]&1)<<d,h[d]>>=1;b+="hzv4ut7rpmed91yw5ik6n8sobax32gfcy2y0f3e1a8r9t6h"[a]}return b}`
+# login svc
+sid = sessionStorage.sid or localStorage.sid
+svc = (cfg) ->
+	$.mobile.showPageLoadingMsg()
+	$.ajax
+		url: "svc/#{cfg.svc}.svc/#{cfg.method}"
+		type: 'POST'
+		dataType: 'json'
+		contentType: 'application/json;charset=utf-8'
+		data: JSON.stringify cfg.data
+		processdata: false
+		complete: (xhr) ->
+			$.mobile.hidePageLoadingMsg()
+			cfg.complete?()
+		success: (data, xhr) ->
+			if data?.d?
+				cfg.callback data.d
+			else
+				alert 'Network Error'
+				console.log 'err', xhr, xhr.statusText # error
+		error: (xhr) ->
+			alert 'Network Error'
+			console.log 'err', xhr, xhr.statusText
+	return false;
+
+# login dlg
+$('#login').bind
+	pagecreate: ->
+		$('#login_form').bind submit: (e) ->
+			#fields = @fields = 
+			#$('input, select', @)
+			e.preventDefault()
+			e.stopPropagation()
+			#@fields.mobile 'disable'
+			inputs = $('input', @).textinput 'disable'
+			slider = $('select', @).slider 'disable'
+			btns = $('button', @).button 'disable'
+			$('#btn_reg').addClass 'ui-disabled'
+			email = $('#email').val().trim()
+			password = $('#password').val()
+			return false if not email or not password
+			pk = hash("\0#{email}\xffKnightRider\xff#{password}\0\x58\xb5\x04\x05\xf1\x50\x47\x6f\xf0\x40\xd8\xf4\xed\x9d\xd2\x79\xc0\x6e\xa6\xd9\xff")
+			autologin = $('#autologin').val() is 'on'
+			svc
+				svc: 'user'
+				method: 'login'
+				data:
+					email: email
+					password: pk
+				callback: (data) ->
+					console.log data
+					if data.uid and data.sid?.length is 32
+						sid = sessionStorage.sid = data.sid
+						localStorage.sid = sid if autologin
+						user = sessionStorage.user = uid: data.uid, email: email
+						localStorage.user = user if autologin
+						$.mobile.changePage '#home', transition: 'flip'
+					else
+						alert 'Login Failed, please try again'
+				complete: ->
+					btns.button 'enable'
+					inputs.textinput 'enable'
+					slider.slider 'enable'
+					$('#btn_reg').removeClass 'ui-disabled'
+			@ # end of login
+	pagebeforehide: -> $('#login_form_warp').hide()
+	pagebeforeshow: -> $('#login_form_warp').hide()
+	pageshow: ->
+		$('#login_form_warp').show()
+		localStorage.sid = sessionStorage.sid = sid = null
+
 # weather api
 $.ajax
-	url:'/gapi?weather=san+jose,ca'
+	url:'gapi?&hl=en-us&weather=san+jose,ca'
 	dataType: 'xml'
 	success: (xml, xhr) ->
 		j = xml2json(xml)

@@ -1,0 +1,4 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<publishData>
+  <publishProfile publishUrl="https://sjsu.yyfearth.com:8172/MsDeploy.axd" deleteExistingFiles="False" ftpAnonymousLogin="False" ftpPassiveMode="True" msdeploySite="CMPE202/KnightRider" msdeploySiteID="" msdeployRemoteSitePhysicalPath="" msdeployAllowUntrustedCertificate="True" msdeploySkipExtraFilesOnServer="False" msdeployMarkAsApp="True" profileName="HomeWebDeploy" publishMethod="MSDeploy" replaceMatchingFiles="True" userName="Administrator" savePWD="True" userPWD="AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAAfbwzfVtL00yLdhq5Mm88swAAAAACAAAAAAAQZgAAAAEAACAAAABbpr4U4piJJoJLMCEHPxsICqWGiFUX76YfkOxySfLmdgAAAAAOgAAAAAIAACAAAABglYRhn/PGY9p6HFoi3O073IoYF8YqsDbrsURH3yK6bhAAAAD3m4PezneFYgAk1B6Srle7QAAAAG78bZRXvQRrCPqJyiCcCzl3WtGuLT9Bt4NgmkwLi5AF1/leAfbezWGhl+JwpL5/QMVBPGPwnLaAwPzT6uywj38=" SelectedForPublish="True" />
+</publishData>
