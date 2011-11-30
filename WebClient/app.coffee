@@ -4,13 +4,20 @@
 window.app = # ns
 	back: -> history.go -1
 # init screen
-location.hash = if sid?.length is 32 then '#home' else '#login'
+#location.hash = if sid?.length is 32 then '#home' else '#login'
+location.hash = '#home'
 # add back and home button to every page except home
 $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append $('[data-btn-role="back"],[data-btn-role="home"]')
 $('#search [data-btn-role="home"]').hide()
 # adjust ref height
+b = document.body
 map_spacers = $ document.querySelectorAll '[data-role="map"]'
-map_spacers.add('#map').height Math.round document.body.clientHeight * 0.35
+$(window).resize ->
+	console.log 'resize', b.clientWidth, b.clientHeight
+	app.horizontal = b.clientWidth > b.clientHeight
+	$(b)[if app.horizontal then 'addClass' else 'removeClass'] 'horizontal'
+	#map_spacers.add('#map').height Math.round (document.body.clientHeight - 93) * if app.horizontal then 1 else 0.45
+$(document.body).resize()
 $('#home').one pageshow: -> map.el.offset $('#home_map').offset()
 # build shared map
 map = app.map = new google.maps.Map $('#map')[0],
@@ -19,7 +26,7 @@ map = app.map = new google.maps.Map $('#map')[0],
 	navigationControl: true
 	navigationControlOptions: 
 		style: google.maps.NavigationControlStyle.SMALL
-svc = new google.maps.places.PlacesService map
+plcsvc = new google.maps.places.PlacesService map
 geocoder = new google.maps.Geocoder()
 dirSvc = new google.maps.DirectionsService()
 dirRenderer = new google.maps.DirectionsRenderer()
@@ -31,10 +38,10 @@ svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.72
 	trafficLayer = new google.maps.TrafficLayer()
 	trafficLayer.setMap @
 	$.extend @,
-		move: (id) =>
+		#move: (id) =>
 			#@el.detach()
 			#$("##{id} .map").append @el
-			@ # end of move
+			#@ # end of move
 		setMarkers: (markers_cfg) =>
 			console.log 'markers', markers_cfg
 			if not markers_cfg
@@ -60,12 +67,12 @@ svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.72
 				console.log 'curlatlng', curlatlng
 				if not curlatlng.equals @getCenter()
 					curlatlng.changed = true
-				if auto #and curlatlng.changed
+				if auto and curlatlng.changed
 					# clear markders
 					@setMarkers null
 					# set center
 					@setCenter curlatlng
-					map_spacers.each (i, m) => $(m).css 'background-image', "url('https://maps.googleapis.com/maps/api/staticmap?center=#{curlatlng.lat()},#{curlatlng.lng()}&zoom=#{$(m).attr('data-map-zoom') or 15}&size=#{$(window).width()}x#{@el.height()}&maptype=roadmap&format=png8&sensor=true')"
+					map_spacers.each (i, m) => $(m).css 'background-image', "url('https://maps.googleapis.com/maps/api/staticmap?center=#{curlatlng.lat()},#{curlatlng.lng()}&zoom=#{$(m).attr('data-map-zoom') or 15}&size=#{$(window).width()}x#{@el.height()}&maptype=roadmap&format=png8&sensor=true&language=en')"
 					# get addr
 					geocoder.geocode latLng: curlatlng, (results, status) =>
 						if status is google.maps.GeocoderStatus.OK
@@ -78,16 +85,21 @@ svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.72
 			), (-> alert 'App cannot run without geo location!') if navigator.geolocation?
 			@ # end of get cur pos
 ).call map # end of ext map
+# map share
 $('[data-role="page"]').bind
 	pagebeforeshow: ->
-		map.el.css('opacity', 0).show()
+		map.el.css('opacity': 0, 'z-index': 0)
 	pageshow: ->
-		map.el[if $(@).hasClass('has-map') then 'show' else 'hide']().css('opacity', 1)
+		$.mobile.fixedToolbars.show()
+		@hh = $('[data-role="header"]', @)?.outerHeight() or 0
+		@fh = $('[data-role="footer"]', @)?.outerHeight() or 0
+		@bh = document.body.clientHeight - @hh - @fh
+		$('.map', @).add(map.el).height @bh * if app.horizontal then 1 else 0.45
+		map.el.css('opacity': 1, 'z-index': 10000) if $(@).hasClass('has-map')
+		#map.el[if $(@).hasClass('has-map') then 'show' else 'hide']().css('opacity', 1)
 
 # home page
 $('#home').bind
-	pageshow: ->
-		#map.el.show()
 	pagebeforeshow: ->
 		if (not sid? or sid.length isnt 32)
 			$.mobile.changePage '#login', transition: 'none'
@@ -96,14 +108,21 @@ $('#home').bind
 		console.log 'home pageshow'
 		# init nav api and home page
 		map.getCurPos (curlatlng, addr) ->
-			$('#home_addr').text addr # set addr info
+			$('#home_addr').text addr if addr? # set addr info
 			@setZoom 15
 			@setMarkers position: curlatlng # set cur marker
-			@move 'home'
+			#@move 'home'
+		@auto = setInterval (->
+			map.getCurPos (curlatlng, addr) -> $('#home_addr').text addr if addr? # set addr info
+		), 30000 # every 30s
 		#maps.getCurPos ((curlatlng) -> @map.mark curlatlng) if @map? and not @map.getCenter()?.equals curlatlng
 		@ # end of home page show
+	#pageshow: ->
+		#if (not sid? or sid.length isnt 32)
+			#$.mobile.changePage '#login', transition: 'none'
+		#map.el.show()
 	pagehide: ->
-		#map.el.hide()
+		@auto = clearInterval @auto
 
 # util js
 `function xml2json(b,g,h){function j(b,g){if(!b)return null;var c="",a=null;if(b.childNodes&&0<b.childNodes.length)for(var i=0;i<b.childNodes.length;i++){var d=b.childNodes[i],f=d.nodeType,e=d.localName||d.nodeName||"",h=d.text||d.nodeValue||"";if(8!=f)if(3==f||4==f||!e)c+=h.replace(/^\s+|\s+$/g,"");else if(a=a||{},a[e]){if(!(a[e]instanceof Array)||!a[e].length)a[e]=[a[e]];a[e].push(j(d,!0))}else a[e]=j(d,!1)}if(b.attributes&&!k&&0<b.attributes.length){a=a||{};for(d=0;d<b.attributes.length;d++)e=b.attributes[d],f=e.name||"",e=e.value,a[f]?(!(a[f]instanceof Array)&&a[f].length&&(a[f]=[a[f]]),a[f].push(e)):a[f]=e}if(a){if(""!=c){d=new String(c);for(i in a)d[i]=a[i];a=d}if(c=a.text?("object"==typeof a.text?a.text:[a.text||""]).concat([c]):c)a.text=c;c=""}a=a||c;if(l){c&&(a={});if(c=a.text||c||"")a.text=c;!g&&!(a instanceof Array)&&(a=[a])}return a}var l=g,k=h;if(!b)return{};"string"==typeof b&&(b=q(b));if(b.nodeType){if(3==b.nodeType||4==b.nodeType)return b.nodeValue;b=9==b.nodeType?b.documentElement:b;g=j(b,!0);b=b=null;return g}}function q(b){var g;try{var h=new DOMParser;h.async=!1;g=h.parseFromString(b,"text/xml")}catch(j){throw Error("Error parsing XML string");}return g}`
@@ -185,6 +204,7 @@ $.ajax
 	dataType: 'xml'
 	success: (xml, xhr) ->
 		j = xml2json(xml)
+		return if not j.weather?.current_conditions?
 		cur = j.weather.current_conditions
 		console.log 'w:', j
 		getIcon = (d) -> "https://www.google.com" + d.icon.data
@@ -215,7 +235,7 @@ finally
 # search menu page
 # $('#search').bind pageshow: -> @map.keyword = null if @map? # clear app.search_keyword
 # bind buttons and menus
-$('[data-btn-role="search"]').live vclick: ->
+$('[data-btn-role="search"]').live vclick: (e) ->
 	app.search_keyword = $(@).text()
 	console.log 'vclick', app.search_keyword
 	@ # end of vclick
@@ -255,9 +275,9 @@ $('#result').bind
 		# create new results
 		map.getCurPos (curlatlng, addr) ->
 			@setZoom 12
-			@move 'result'
+			#@move 'result'
 			# search result
-			svc.search
+			plcsvc.search
 				#bounds: svbounds
 				location: curlatlng
 				radius: 5000
@@ -309,6 +329,7 @@ $('#result').bind
 					@ # end of search callback
 		@ # end of result page show
 
+# detail
 proc_rating = (rating) ->
 	rating = Number(rating)
 	stars = rating.toFixed(1)
@@ -321,27 +342,36 @@ $('#result_list a').live vclick: ->
 	app.selected_place = app.result_map[@id]
 $('#detail').bind
 	pageshow: ->
+		detial_info = $('#detial_info')
+		detial_info.height document.body.clientHeight - detial_info.offset().top - @fh
 		console.log 'detailof', app.selected_place
+		window.scrollTop = 0
 		if not app.selected_place
 			app.back()
 			return
-		$('#apt_cancel').bind vclick: -> $('#appointment').dialog('close')
-		svc.getDetails (reference: app.selected_place.reference), (place, status) ->
+		$('#apt_cancel').bind vclick: (e) ->
+			e.preventDefault()
+			e.stopPropagation()
+			$('#appointment').dialog('close')
+			return false;
+		plcsvc.getDetails (reference: app.selected_place.reference), (place, status) ->
 			if status is google.maps.places.PlacesServiceStatus.OK
 				map.setCenter place.geometry.location
 				map.setMarkers position: place.geometry.location
 				map.setZoom 15
 				$('#detail_place').text place.name
-				$('#detial_info').html "<ul>
+				detial_info.html "<ul>
 <li>#{place.formatted_address}</li><li>#{place.formatted_phone_number}</li>
 <li>#{place.types.join(', ').replace(/_/g, ' ').toUpperCase()}</li>
 <li>#{if place.rating? then proc_rating(place.rating) else '(No Rating Data)' }</li>
 <li><a href=\"#{place.website or place.url}\" target=\"_blank\">
 #{if place.website? then 'Visit its Website' else 'View on Google Place'}</a></li></ul>"
 				console.log place
-
+# direction
 $('#direction').bind
 	pageshow: ->
+		direction_panel = $('#direction_panel')
+		direction_panel.height document.body.clientHeight - direction_panel.offset().top
 		map.getCurPos (curlatlng, addr) ->
 			dirSvc.route (
 				origin: addr
@@ -353,9 +383,14 @@ $('#direction').bind
 				if dirStatus is google.maps.DirectionsStatus.OK
 					# Show directions
 					dirRenderer.setMap map
-					dirRenderer.setPanel $('#direction_panel')[0]
+					dirRenderer.setPanel direction_panel[0]
 					dirRenderer.setDirections(dirResult)
+					# show self
+					curloc = -> map.getCurPos (curlatlng, addr) -> @setMarkers position: curlatlng if addr? # set cur marker
+					@auto = setInterval curloc, 10000 # every 10s
+					curloc()
 				else  alert('Directions failed: ' + dirStatus)
 	pagehide: ->
+		@auto = clearInterval @auto
 		dirRenderer.setMap null
 console.log 2

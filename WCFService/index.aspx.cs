@@ -8,7 +8,8 @@ using System.Web.UI.WebControls;
 namespace KnightRider {
 	public partial class WebForm1 : System.Web.UI.Page {
 		protected void Page_Load(object sender, EventArgs e) {
-			//var r = DataAccess.LoginUser("yyfearth@gmail.com", "133kxx98cbcgzgehuc84xcmm8x8xm557em");
+			var r = DataAccess.ValidateUser("yyfearth@gmail.com", "2nfbn72519np2yuoooigtgzvmmb7ptz");
+			Response.Write(r);
 			/*var svc = new User();
 			var u = new UserJson() {
 				email = "wilson@yyfearth.com",
