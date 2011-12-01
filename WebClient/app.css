@@ -17,6 +17,7 @@
 	margin: 0;
 	padding: 0;
 	background-position: center;
+	z-index: 1000;
 }
 .horizontal .map, .horizontal #map {
 	float: left;
@@ -44,12 +45,12 @@
 	background: black url(res/kr.jpg) center -14px no-repeat;
 	height: 70px;
 }
-#result_list li .ui-btn-text a {
-	padding: 0.3em 15px;
+a[data-btn-role="result"] {
+	padding: 0.3em 15px !important;
 }
-#result_list li .ui-btn-text img {
-	position: static;
-	padding-top: 0.3em;
+a[data-btn-role="result"] img {
+	position: static !important;
+	padding-top: 0.3em !important;
 }
 #btn_home_search {
 	display: block;

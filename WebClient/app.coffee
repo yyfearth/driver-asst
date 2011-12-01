@@ -3,9 +3,10 @@
 # app init
 window.app = # ns
 	back: -> history.go -1
+	autologin: $('#autologin').val() is 'on'
 # svc
 svc = (cfg) ->
-	$.mobile.showPageLoadingMsg()
+	$.mobile.showPageLoadingMsg() if not cfg.nowait
 	$.ajax
 		url: "svc/#{cfg.svc}.svc/#{cfg.method}"
 		type: 'POST'
@@ -14,11 +15,13 @@ svc = (cfg) ->
 		data: JSON.stringify cfg.data
 		processdata: false
 		complete: (xhr) ->
+			return if cfg.nowait
 			$.mobile.hidePageLoadingMsg()
 			cfg.complete?()
-		success: (data, xhr) ->
-			if data?.d?
-				cfg.callback data.d
+		success: (data, txt, xhr) ->
+			return if cfg.nowait
+			if data? and 'd' of data
+				cfg.callback? data.d
 			else
 				alert 'Network Error'
 				console.log 'err', xhr, xhr.statusText # error
@@ -26,7 +29,7 @@ svc = (cfg) ->
 			alert 'Network Error'
 			console.log 'err', xhr, xhr.statusText
 	return false;
-# retrieve user profile
+# retrieve user app.user
 try
 	app.user = JSON.parse (sessionStorage.user or localStorage.user)
 	if app.user?.uid > 0 and app.user?.sid?.length is 32
@@ -44,6 +47,18 @@ try
 	else location.hash = '#login'
 catch e
 	app.user = null
+	location.hash = '#login'
+console.log 'app.user', app.user
+# save app.user
+app.save_profile = window.onbeforeunload = ->
+	if app.user?.uid # save user app.user
+		p = sessionStorage.user = JSON.stringify app.user
+		localStorage.user = p if app.autologin
+	else
+		localStorage.removeItem 'user'
+		sessionStorage.removeItem 'user'
+	return #"Sure to leave Knight Rider?"
+
 # add back and home button to every page except home
 $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append $('[data-btn-role="back"],[data-btn-role="home"]')
 $('#search [data-btn-role="home"]').hide()
@@ -151,22 +166,6 @@ $.ajax
 		@ # end
 	error: (xhr) -> console.log 'get weather failed', xhr
 
-# init history
-try
-	console.log localStorage.custom_search_history
-	app.history = JSON.parse localStorage.custom_search_history if localStorage.custom_search_history?
-	app.history = [] if not $.isArray app.history
-catch err
-	console.log err
-	app.history = []
-finally
-	app.history.refresh = =>
-		$('#history_list li:gt(0)').remove() # remove all except history_list_header
-		if app.history.length
-			$('#history_list_header').after app.history.map((item) ->"<li><a href=\"#result\" data-btn-role=\"search\">#{item}</a></li>").join ''
-		else
-			$('#history_list_header').after '<li data-role="list-divider" class="ui-body-c list-none">(None)</li>'
-
 # util js
 `function xml2json(b,g,h){function j(b,g){if(!b)return null;var c="",a=null;if(b.childNodes&&0<b.childNodes.length)for(var i=0;i<b.childNodes.length;i++){var d=b.childNodes[i],f=d.nodeType,e=d.localName||d.nodeName||"",h=d.text||d.nodeValue||"";if(8!=f)if(3==f||4==f||!e)c+=h.replace(/^\s+|\s+$/g,"");else if(a=a||{},a[e]){if(!(a[e]instanceof Array)||!a[e].length)a[e]=[a[e]];a[e].push(j(d,!0))}else a[e]=j(d,!1)}if(b.attributes&&!k&&0<b.attributes.length){a=a||{};for(d=0;d<b.attributes.length;d++)e=b.attributes[d],f=e.name||"",e=e.value,a[f]?(!(a[f]instanceof Array)&&a[f].length&&(a[f]=[a[f]]),a[f].push(e)):a[f]=e}if(a){if(""!=c){d=new String(c);for(i in a)d[i]=a[i];a=d}if(c=a.text?("object"==typeof a.text?a.text:[a.text||""]).concat([c]):c)a.text=c;c=""}a=a||c;if(l){c&&(a={});if(c=a.text||c||"")a.text=c;!g&&!(a instanceof Array)&&(a=[a])}return a}var l=g,k=h;if(!b)return{};"string"==typeof b&&(b=q(b));if(b.nodeType){if(3==b.nodeType||4==b.nodeType)return b.nodeValue;b=9==b.nodeType?b.documentElement:b;g=j(b,!0);b=b=null;return g}}function q(b){var g;try{var h=new DOMParser;h.async=!1;g=h.parseFromString(b,"text/xml")}catch(j){throw Error("Error parsing XML string");}return g}`
 `function sha1(a){for(var d=[],b=0;b<8*a.length;b+=8)d[b>>5]|=(a.charCodeAt(b/8)&255)<<24-b%32;a=8*a.length;d[a>>5]|=128<<24-a%32;d[(a+64>>9<<4)+15]=a;for(var a=Array(80),b=1732584193,e=-271733879,f=-1732584194,g=271733878,i=-1009589776,j=0;j<d.length;j+=16){for(var k=b,l=e,m=f,n=g,o=i,c=0;80>c;c++){a[c]=16>c?d[j+c]:(a[c-3]^a[c-8]^a[c-14]^a[c-16])<<1|(a[c-3]^a[c-8]^a[c-14]^a[c-16])>>>31;var p=h(h(b<<5|b>>>27,20>c?e&f|~e&g:40>c?e^f^g:60>c?e&f|e&g|f&g:e^f^g),h(h(i,a[c]),20>c?1518500249:40>c?1859775393:60>c?-1894007588:-899497514)),i=g,g=f,f=e<<30|e>>>2,e=b,b=p}b=h(b,k);e=h(e,l);f=h(f,m);g=h(g,n);i=h(i,o)}d=[b,e,f,g,i];a="";for(b=0;b<4*d.length;b++)a+="0123456789abcdef".charAt(d[b>>2]>>8*(3-b%4)+4&15)+"0123456789abcdef".charAt(d[b>>2]>>8*(3-b%4)&15);return a};function h(a,d){var b=(a&65535)+(d&65535);return(a>>16)+(d>>16)+(b>>16)<<16|b&65535};`
@@ -176,9 +175,6 @@ hash = (str1, str2) ->
 # home page
 $('#home').bind
 	pagebeforeshow: ->
-		if not (app.user?.sid?.length is 32)
-			$.mobile.changePage '#login', transition: 'none'
-			return
 		return if $('#map', @).length
 		console.log 'home pageshow'
 		# init nav api and home page
@@ -212,7 +208,7 @@ $('#login').bind
 			password = $('#password').val()
 			return false if not email or not password
 			pk = hash email.toLowerCase(), password
-			autologin = $('#autologin').val() is 'on'
+			app.autologin = $('#autologin').val() is 'on'
 			svc
 				svc: 'user'
 				method: 'login'
@@ -223,8 +219,6 @@ $('#login').bind
 					console.log data
 					if data.uid and data.sid?.length is 32
 						app.user = uid: data.uid, email: email, sid: data.sid
-						j = sessionStorage.user = JSON.stringify app.user
-						localStorage.user = j if autologin
 						$.mobile.changePage '#home', transition: 'flip'
 					else
 						alert 'Login Failed, please try again'
@@ -238,10 +232,20 @@ $('#login').bind
 	pagebeforehide: -> $('#login_form_warp').hide()
 	pagebeforeshow: -> $('#login_form_warp').hide()
 	pageshow: ->
+		$('#password').val ''
 		$('#login_form_warp').show()
+		console.log 'logout', app.user
+		return if not app.user?
+		svc
+			svc: 'user'
+			method: 'logout'
+			nowait: true
+			data:
+				uid: app.user.uid
+				sid: app.user.sid
 		app.user = null
-		sessionStorage.user = null
-		localStorage.user = null
+		app.save_profile()
+		@ # end of show
 
 # reg dlg
 $('#reg_form').submit (e) ->
@@ -292,7 +296,7 @@ $('#appt_form').submit (e) ->
 		contact:
 			name: @name.value
 			phone: @phone.value
-		datetime: "\/Date(#{Date.parse(@datetime.value)}-0000))\/"
+		datetime: "\/Date(#{Date.parse(@datetime.value)}-0000)\/"
 		message: @comments.value
 	console.log 'appt', appt
 	svc
@@ -317,29 +321,49 @@ $('[data-btn-role="search"]').live vclick: (e) ->
 	app.search_keyword = $(@).text()
 	console.log 'vclick', app.search_keyword
 	@ # end of vclick
-# custom search
-$('#search_history').bind
-	pagecreate: ->
-		@created = true
-		app.history.refresh() # for the 1st show
-		new google.maps.places.Autocomplete $('#input_search')[0],
-			bounds: svbounds
-			types: ['establishment']
-$('#search_history').bind 'pageshow pagebeforeshow', -> $('#history_list').listview 'refresh' if @created
+
+app.custom_search_history_refresh = ->
+	$('#custom_history_list li:gt(0)').remove() # remove all except custom_history_list_header
+	l = '<li data-role="list-divider" class="ui-body-c list-none">(None)</li>'
+	l = app.user.custom_search_history.map((item) ->
+		"<li><a href=\"#result\" data-btn-role=\"search\">#{item}</a></li>"
+	).join '' if app.user.custom_search_history?.length
+	$('#custom_history_list_header').after l
+app.place_search_history_refresh = ->
+	$('#search_history_list li:gt(0)').remove() # remove all except custom_history_list_header
+	l = '<li data-role="list-divider" class="ui-body-c list-none">(None)</li>'
+	l = app.user.place_search_history.map((r, i) ->
+		"<li><a href=\"#detail\" data-btn-role=\"result\" data-index=\"#{i}\"><img src=\"#{r.icon}\" class=\"ui-li-icon\">
+<h3 class=\"ui-li-heading\">#{r.name}</h3><p class=\"ui-li-desc\">#{r.vicinity}</p></li>"
+	).join '' if app.user.place_search_history?.length
+	$('#search_history_list_header').after l
+
+# custom search page
+$('#custom_search').bind pagecreate: ->
+	@created = true
+	app.custom_search_history_refresh() # for the 1st show
+	new google.maps.places.Autocomplete $('#input_search')[0],
+		bounds: svbounds
+		types: ['establishment']
+$('#custom_search').bind 'pageshow pagebeforeshow', -> $('#custom_history_list').listview 'refresh' if @created
 $('#custom_search_form').submit ->
 	input = $('#input_search')
 	keyword = $.trim input.val()
-	keyword.custom = true
 	if keyword
-		app.search_keyword = keyword
+		app.search_keyword = new String(keyword)
+		app.search_keyword.custom = true
 		$.mobile.changePage '#result'
-		console.log 'vclick', app.history.search_keyword
+		console.log 'vclick', app.search_keyword
 	else input.focus().val ''
 	false # end of submit
-# save history
-window.onbeforeunload = ->
-	localStorage.custom_search_history = JSON.stringify app.history
-	return #"Sure to leave Knight Rider?"
+
+# search history page
+$('#search_history').bind pagecreate: ->
+	@created = true
+	app.place_search_history_refresh()
+	$('#search_history li a').live vclick: ->
+		app.selected_place = app.user.place_search_history[Number $(@).attr 'data-index']
+$('#search_history').bind 'pageshow pagebeforeshow', -> $('#search_history_list').listview 'refresh' if @created
 
 # result page
 $('#result').bind
@@ -401,10 +425,12 @@ $('#result').bind
 							title: 'You are here'
 						# set markers to map
 						map.setMarkers markers
-						# save history
-						if app.search_keyword.custom and app.history[0] isnt app.search_keyword
-							app.history.unshift app.search_keyword
-							app.history.refresh() # refresh list
+						# save custom search history
+						if app.search_keyword.custom
+							hs = app.user.custom_search_history ?= []
+							if hs.length is 0 or hs[0] isnt app.search_keyword
+								hs.unshift app.search_keyword
+								app.custom_search_history_refresh() # refresh list
 					else alert 'Search Error'
 					@ # end of search callback
 		@ # end of result page show
@@ -426,8 +452,7 @@ $('#detail').bind
 			e.preventDefault()
 			e.stopPropagation()
 			$('#appointment').dialog('close')
-			return false;
-			@ # end fo create
+			false # end fo create
 	pageshow: ->
 		detial_info = $('#detial_info')
 		detial_info.height document.body.clientHeight - detial_info.offset().top - @fh
@@ -447,7 +472,23 @@ $('#detail').bind
 <li>#{if place.rating? then proc_rating(place.rating) else '(No Rating Data)' }</li>
 <li><a href=\"#{place.website or place.url}\" target=\"_blank\">
 #{if place.website? then 'Visit its Website' else 'View on Google Place'}</a></li></ul>"
+			# save history
+			psh = app.user.place_search_history ?= []
+			if psh.length is 0 or psh[0].id isnt app.selected_place.id
+				psh.some (h, i) ->
+					if h.id is app.selected_place.id
+						psh.splice i, 1 # del
+						return true
+					false
+				psh.unshift
+					id: place.id
+					reference: app.selected_place.reference
+					name: place.name
+					vicinity: place.vicinity
+					icon: place.icon?.replace /^http:/, 'https:'
+				app.place_search_history_refresh()
 			console.log place
+			@ # end of show detail
 		if app.selected_place.__detail
 			show_detail app.selected_place.__detail
 		else plcsvc.getDetails (reference: app.selected_place.reference), (place, status) ->
@@ -456,9 +497,9 @@ $('#detail').bind
 				show_detail place
 		@ # end of show
 
-# direction
+# direction page
 $('#direction').bind
-	pageshow: ->
+	pagebeforeshow: ->
 		direction_panel = $('#direction_panel')
 		direction_panel.height document.body.clientHeight - direction_panel.offset().top
 		#curloc = -> map.getCurPos (curlatlng, addr) -> @setMarkers position: curlatlng if addr? # set cur marker
@@ -478,7 +519,7 @@ $('#direction').bind
 					dirRenderer.setDirections(dirResult)
 					# show self
 					#curloc()
-				else  alert('Directions failed: ' + dirStatus)
+				else alert('Directions failed: ' + dirStatus)
 	pagehide: ->
 		#@auto = clearInterval @auto
 		dirRenderer.setMap null

@@ -46,10 +46,10 @@
 						<option value="on" selected="selected">On</option>
 					</select>
 				</div>
-				<fieldset class="ui-grid-a">
+				<div class="ui-grid-a">
 					<div class="ui-block-a"><a id="btn_reg" data-role="button" href="#reg" data-transition="slidedown" data-rel="dialog">Register</a></div>
 					<div class="ui-block-b"><button id="btn_login" type="submit" data-theme="b">Login</button></div>
-				</fieldset>
+				</div>
 				</form>
 			</div>
 		</div>
@@ -59,20 +59,21 @@
 			<h1>Registration</h1>
 			<form id="reg_form" data-ajax="false">
 			<label for="user">Email:</label>
-			<input type="email" name="email" id="email" placeholder="Enter your Email" required="required" />
+			<input type="email" name="email" id="reg_email" placeholder="Enter your Email" required="required" />
 			<label for="password">Password:</label>
-			<input type="password" name="password" id="password" placeholder="Enter your Password" required="required" pattern=".{6,}" />
-			<input type="password" name="password2" id="password2" placeholder="Re-enter your Password" required="required" pattern=".{6,}" />
+			<input type="password" name="password" id="reg_password" placeholder="Enter your Password" required="required" pattern=".{6,}" />
+			<input type="password" name="password2" id="reg_password2" placeholder="Re-enter your Password" required="required" pattern=".{6,}" />
 			<label for="first">Full Name:</label>
 			<input type="text" name="first" id="first" placeholder="First Name" required="required" />
 			<input type="text" name="last" id="last" placeholder="Last Name" required="required" />
 			<label for="phone">Phone Number:</label>
 			<input type="tel" name="phone" id="phone" placeholder="Phone Number" required="required" />
 			<br/>
-			<fieldset class="ui-grid-a">
+			<div class="ui-grid-a">
 				<div class="ui-block-a"><a data-role="button" href="#login">Cancel</a></div>
 				<div class="ui-block-b"><button type="submit" data-theme="a">Register</button></div>
-			</fieldset>
+			</div>
+			</form>
 		</div>
 	</div>
 	<div data-role="page" id="search">
@@ -88,22 +89,34 @@
 				<li><a href="#result" data-btn-role="search" id="search_gas">Gas Station</a></li>
 				<li><a href="#result" data-btn-role="search" id="search_tow">Towing Station</a></li>
 				<li><a href="#result" data-btn-role="search" id="search_rep">Vehicle Repair Station</a></li>
-				<li data-role="list-divider">Custom Search</li>
-				<li><a href="#search_history">Custom Search</a></li>
+				<li data-role="list-divider">Custom Search and History</li>
+				<li><a href="#custom_search">Custom Search</a></li>
+				<li><a href="#search_history">Search History</a></li>
+			</ul>
+		</div>
+	</div>
+	<div data-role="page" id="custom_search">
+		<div data-role="header">
+			<h1>Custom Search</h1>
+		</div>
+		<div data-role="content">
+			<form id="custom_search_form" data-ajax="false" target="_blank">
+				<input type="search" name="search" id="input_search" placeholder="Type the Keywords here" />
+				<button type="submit" id="btn_custom_search" data-icon="search" data-iconpos="right">Search</button>
+			</form>
+			<ul data-role="listview" data-inset="true" id="custom_history_list">
+				<li data-role="list-divider" id="custom_history_list_header">Custom Search History</li>
+				<li data-role="list-divider" class="ui-body-c list-none">(None)</li>
 			</ul>
 		</div>
 	</div>
 	<div data-role="page" id="search_history">
 		<div data-role="header">
-			<h1>Custom Search</h1>
+			<h1>Search History</h1>
 		</div>
 		<div data-role="content">
-			<form id="custom_search_form">
-				<input type="search" name="search" id="input_search" placeholder="Type the Keywords here" />
-				<input type="submit" data-role="button" id="btn_custom_search" data-icon="search" data-iconpos="right" value="Search" />
-			</form>
-			<ul data-role="listview" data-inset="true" id="history_list">
-				<li data-role="list-divider" id="history_list_header">Search History</li>
+			<ul data-role="listview" data-inset="true" id="search_history_list">
+				<li data-role="list-divider" id="search_history_list_header">Search History</li>
 				<li data-role="list-divider" class="ui-body-c list-none">(None)</li>
 			</ul>
 		</div>
@@ -154,13 +167,13 @@
 			<label for="cphone">Phone Number: (Optional)</label>
 			<input type="tel" name="phone" id="cphone" placeholder="Phone Number" />
 			<label for="datetime">Appointment Time: (Required)</label>
-			<input type="datetime" name="datetime" id="datetime" placeholder="Date &amp; Time" required="required" />
+			<input type="datetime" name="datetime" id="datetime" required="required" placeholder="Date Time" />
 			<label for="comments">Comments: (Optional)</label>
 			<textarea name="comments" id="comments" placeholder="You can write some comments here ..."></textarea>
-			<fieldset class="ui-grid-a">
+			<div class="ui-grid-a">
 				<div class="ui-block-a"><button id="apt_cancel" data-theme="d">Cancel</button></div>
 				<div class="ui-block-b"><button type="submit" data-theme="a">Submit</button></div>
-			</fieldset>
+			</div>
 			</form>
 		</div>
 	</div>
