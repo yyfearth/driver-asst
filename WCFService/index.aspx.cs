@@ -9,7 +9,7 @@ namespace KnightRider {
 	public partial class WebForm1 : System.Web.UI.Page {
 		protected void Page_Load(object sender, EventArgs e) {
 			var r = DataAccess.ValidateUser("yyfearth@gmail.com", "2nfbn72519np2yuoooigtgzvmmb7ptz");
-			Response.Write(r);
+			if (r == 1) Response.Write("Service Ready ...");
 			/*var svc = new User();
 			var u = new UserJson() {
 				email = "wilson@yyfearth.com",

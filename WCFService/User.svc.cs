@@ -41,7 +41,18 @@ namespace KnightRider {
 				DataAccess.LogoutUser(uid, Guid.ParseExact(sid, "N"));
 			} catch { }
 		}
-		// ! nerver use user.id, instead, use sid then get userid
+
+		[OperationContract]
+		[WebInvoke(Method = "POST", BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]
+		public uint reg(UserJson user) { // cacheable
+			try {
+				return DataAccess.AddUser(user);
+			} catch (DataAccess.ConflictException) {
+				return 0;
+			} catch {
+				throw new FaultException("internal error", new FaultCode("error"));
+			}
+		}
 
 		// Add more operations here and mark them with [OperationContract]
 	}

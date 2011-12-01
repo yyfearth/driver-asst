@@ -11,18 +11,20 @@ namespace KnightRider {
 	[ServiceContract(Namespace = "")]
 	[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
 	public class Appointment {
-		// To use HTTP GET, add [WebGet] attribute. (Default ResponseFormat is WebMessageFormat.Json)
-		// To create an operation that returns XML,
-		//     add [WebGet(ResponseFormat=WebMessageFormat.Xml)],
-		//     and include the following line in the operation body:
-		//         WebOperationContext.Current.OutgoingResponse.ContentType = "text/xml";
-		/*[OperationContract]
-		public AppointmentJson add(string sid, AppointmentJson appt) {
-			DataAccess.ValidateLogin(
-			DataAccess.AddAppointment(appt);
-			//return;
-		}*/
-
-		// Add more operations here and mark them with [OperationContract]
+		[OperationContract]
+		[WebInvoke(Method = "POST", BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]
+		public bool add(AppointmentJson appt, string sid) {
+			try {
+				if (appt == null || appt.user == 0)
+					throw new Exception("bad req");
+				if (sid == null || sid == string.Empty ||
+					!DataAccess.ValidateLogin(appt.user, Guid.ParseExact(sid, "N")))
+					return false;
+				DataAccess.AddAppointment(appt);
+				return true;
+			} catch {
+				throw new FaultException("internal error", new FaultCode("error"));
+			}
+		}
 	}
 }

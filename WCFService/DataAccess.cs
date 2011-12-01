@@ -18,6 +18,7 @@ namespace KnightRider {
 		public class NoResultException : DataAccessException { }
 		public class ValidateException : NoResultException { }
 		public class NoEffectException : DataAccessException { }
+		public class ConflictException : DataAccessException { }
 
 		private static string hash(string str) {
 			var h = "\xE1\x0C\x67\xBF\x37\x10\x73\x0F\x7E\xF8\x88\x61\x8D\xEC\x31\xE6\x14\xCA\x0B\xB4";
@@ -79,7 +80,7 @@ namespace KnightRider {
 			using (SqlConnection cn = new SqlConnection(conn)) {
 				string sql = "SELECT * FROM [User] WHERE ID = @ID";
 				SqlCommand cmd = new SqlCommand(sql, cn);
-				cmd.Parameters.AddWithValue("@ID", id);
+				cmd.Parameters.AddWithValue("@ID", Convert.ToInt32(id));
 				cn.Open();
 				SqlDataReader rdr = cmd.ExecuteReader(CommandBehavior.CloseConnection);
 				rdr.Read();
@@ -92,8 +93,9 @@ namespace KnightRider {
 						first = (string)rdr["FirstName"],
 						last = (string)rdr["LastName"],
 					},
-					type = (UserType)rdr["Type"],
-					status = (UserStatus)rdr["Status"],
+					phone = (string)rdr["Phone"],
+					type = (UserType)(byte)rdr["Type"],
+					status = (UserStatus)(byte)rdr["Status"],
 					created = (DateTime)rdr["CreatedTime"],
 					modified = (DateTime)rdr["ModifiedTime"],
 				};
@@ -114,7 +116,12 @@ namespace KnightRider {
 				cmd.Parameters.AddWithValue("@FirstName", user.fullname.first);
 				cmd.Parameters.AddWithValue("@LastName", user.fullname.last);
 				cmd.Parameters.AddWithValue("@Phone", user.phone);
-				var c = cmd.ExecuteNonQuery();
+				var c = 0;
+				try {
+					c = cmd.ExecuteNonQuery();
+				} catch (SqlException) {
+					throw new ConflictException();
+				}
 				if (c < 1) throw new NoEffectException();
 				// get user id
 				sql = "SELECT ID FROM [User] WHERE Email=@Email";
@@ -158,7 +165,7 @@ namespace KnightRider {
 						},
 						datetime = (DateTime)rdr["DateTime"],
 						message = (string)rdr["Message"],
-						status = (AppointmentStatus)rdr["Status"],
+						status = (AppointmentStatus)(byte)rdr["Status"],
 						created = (DateTime)rdr["CreatedTime"],
 						modified = (DateTime)rdr["ModifiedTime"],
 					};
@@ -170,7 +177,9 @@ namespace KnightRider {
 
 		public static void AddAppointment(AppointmentJson appt) {
 			if (appt == null) throw new Exception("req is null");
-			if (appt.message == null || appt.message == string.Empty) throw new BadRequestException();
+			if (appt.datetime == null) throw new BadRequestException();
+			var days = (appt.datetime - DateTime.Now).Days;
+			if (days < -1 || days > 30) throw new BadRequestException();
 			using (SqlConnection cn = new SqlConnection(conn)) {
 				string sql = "INSERT INTO [Appointment] (PlaceGID, UserID, ContactName, ContactPhone, DateTime, Message, Status, CreatedTime, ModifiedTime) VALUES (@PlaceGID, @UserID, @ContactName, @ContactPhone, @DateTime, @Message, 1, GETDATE(), GETDATE())";
 				SqlCommand cmd = new SqlCommand(sql, cn);
@@ -218,8 +227,8 @@ namespace KnightRider {
 						summary = (string)rdr["Summary"],
 						message = (string)rdr["Message"],
 						importance = (byte)rdr["Importance"],
-						type = (AlertType)rdr["Type"],
-						status = (AlertStatus)rdr["Status"],
+						type = (AlertType)(byte)rdr["Type"],
+						status = (AlertStatus)(byte)rdr["Status"],
 						created = (DateTime)rdr["CreatedTime"],
 						modified = (DateTime)rdr["ModifiedTime"],
 					};
