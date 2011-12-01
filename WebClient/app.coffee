@@ -112,17 +112,17 @@ $('#home').bind
 			@setZoom 15
 			@setMarkers position: curlatlng # set cur marker
 			#@move 'home'
-		@auto = setInterval (->
-			map.getCurPos (curlatlng, addr) -> $('#home_addr').text addr if addr? # set addr info
-		), 30000 # every 30s
+		#@auto = setInterval (->
+		#	map.getCurPos (curlatlng, addr) -> $('#home_addr').text addr if addr? # set addr info
+		#), 30000 # every 30s
 		#maps.getCurPos ((curlatlng) -> @map.mark curlatlng) if @map? and not @map.getCenter()?.equals curlatlng
 		@ # end of home page show
 	#pageshow: ->
 		#if (not sid? or sid.length isnt 32)
 			#$.mobile.changePage '#login', transition: 'none'
 		#map.el.show()
-	pagehide: ->
-		@auto = clearInterval @auto
+	#pagehide: ->
+		#@auto = clearInterval @auto
 
 # util js
 `function xml2json(b,g,h){function j(b,g){if(!b)return null;var c="",a=null;if(b.childNodes&&0<b.childNodes.length)for(var i=0;i<b.childNodes.length;i++){var d=b.childNodes[i],f=d.nodeType,e=d.localName||d.nodeName||"",h=d.text||d.nodeValue||"";if(8!=f)if(3==f||4==f||!e)c+=h.replace(/^\s+|\s+$/g,"");else if(a=a||{},a[e]){if(!(a[e]instanceof Array)||!a[e].length)a[e]=[a[e]];a[e].push(j(d,!0))}else a[e]=j(d,!1)}if(b.attributes&&!k&&0<b.attributes.length){a=a||{};for(d=0;d<b.attributes.length;d++)e=b.attributes[d],f=e.name||"",e=e.value,a[f]?(!(a[f]instanceof Array)&&a[f].length&&(a[f]=[a[f]]),a[f].push(e)):a[f]=e}if(a){if(""!=c){d=new String(c);for(i in a)d[i]=a[i];a=d}if(c=a.text?("object"==typeof a.text?a.text:[a.text||""]).concat([c]):c)a.text=c;c=""}a=a||c;if(l){c&&(a={});if(c=a.text||c||"")a.text=c;!g&&!(a instanceof Array)&&(a=[a])}return a}var l=g,k=h;if(!b)return{};"string"==typeof b&&(b=q(b));if(b.nodeType){if(3==b.nodeType||4==b.nodeType)return b.nodeValue;b=9==b.nodeType?b.documentElement:b;g=j(b,!0);b=b=null;return g}}function q(b){var g;try{var h=new DOMParser;h.async=!1;g=h.parseFromString(b,"text/xml")}catch(j){throw Error("Error parsing XML string");}return g}`
@@ -372,6 +372,7 @@ $('#direction').bind
 	pageshow: ->
 		direction_panel = $('#direction_panel')
 		direction_panel.height document.body.clientHeight - direction_panel.offset().top
+		#@auto = setInterval curloc, 10000 # every 10s
 		map.getCurPos (curlatlng, addr) ->
 			dirSvc.route (
 				origin: addr
@@ -387,10 +388,9 @@ $('#direction').bind
 					dirRenderer.setDirections(dirResult)
 					# show self
 					curloc = -> map.getCurPos (curlatlng, addr) -> @setMarkers position: curlatlng if addr? # set cur marker
-					@auto = setInterval curloc, 10000 # every 10s
 					curloc()
 				else  alert('Directions failed: ' + dirStatus)
 	pagehide: ->
-		@auto = clearInterval @auto
+		#@auto = clearInterval @auto
 		dirRenderer.setMap null
 console.log 2
