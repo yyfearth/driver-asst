@@ -1,7 +1,7 @@
 USE [KnightRider]
 GO
 
-/****** Object:  Table [dbo].[Alert]    Script Date: 11/26/2011 00:43:07 ******/
+/****** Object:  Table [dbo].[Alert]    Script Date: 12/01/2011 03:09:58 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -9,7 +9,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 CREATE TABLE [dbo].[Alert](
-	[ID] [int] NOT NULL,
+	[ID] [int] IDENTITY(1,1) NOT NULL,
 	[DateTime] [datetime] NOT NULL,
 	[ExpireDateTime] [datetime] NULL,
 	[Summary] [nvarchar](300) NOT NULL,

@@ -41,6 +41,9 @@ namespace KnightRider {
 			}
 		}
 
+		public static bool ValidateLogin(uint uid, string sid){
+			return ValidateLogin(uid, Guid.ParseExact(sid, "N"));
+		}
 		public static bool ValidateLogin(uint userid, Guid sid) {
 			if (userid == 0 || sid == null || sid == Guid.Empty)
 				throw new BadRequestException();
@@ -70,6 +73,9 @@ namespace KnightRider {
 			}
 		}
 
+		public static void LogoutUser(uint uid, string sid) {
+			LogoutUser(uid, Guid.ParseExact(sid, "N"));
+		}
 		public static void LogoutUser(uint userid, Guid sid) { // no result
 			if (userid == 0) throw new BadRequestException();
 			if (ValidateLogin(userid, sid)) LoginUser(userid); // over write

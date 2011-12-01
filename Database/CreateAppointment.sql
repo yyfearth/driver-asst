@@ -1,7 +1,7 @@
 USE [KnightRider]
 GO
 
-/****** Object:  Table [dbo].[Appointment]    Script Date: 11/26/2011 00:43:13 ******/
+/****** Object:  Table [dbo].[Appointment]    Script Date: 12/01/2011 03:10:03 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -13,7 +13,7 @@ GO
 
 CREATE TABLE [dbo].[Appointment](
 	[ID] [int] IDENTITY(1,1) NOT NULL,
-	[PlaceID] [int] NOT NULL,
+	[PlaceGID] [char](40) NOT NULL,
 	[UserID] [int] NOT NULL,
 	[ContactName] [nvarchar](30) NOT NULL,
 	[ContactPhone] [varchar](15) NOT NULL,
@@ -32,13 +32,6 @@ CREATE TABLE [dbo].[Appointment](
 GO
 
 SET ANSI_PADDING OFF
-GO
-
-ALTER TABLE [dbo].[Appointment]  WITH CHECK ADD  CONSTRAINT [FK_Appointment_Place] FOREIGN KEY([PlaceID])
-REFERENCES [dbo].[Place] ([ID])
-GO
-
-ALTER TABLE [dbo].[Appointment] CHECK CONSTRAINT [FK_Appointment_Place]
 GO
 
 ALTER TABLE [dbo].[Appointment]  WITH CHECK ADD  CONSTRAINT [FK_Appointment_User] FOREIGN KEY([UserID])

@@ -38,7 +38,7 @@ namespace KnightRider {
 		[WebInvoke(Method = "POST", BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]
 		public void logout(uint uid, string sid) { // cacheable
 			try {
-				DataAccess.LogoutUser(uid, Guid.ParseExact(sid, "N"));
+				DataAccess.LogoutUser(uid, sid);
 			} catch { }
 		}
 
@@ -49,6 +49,16 @@ namespace KnightRider {
 				return DataAccess.AddUser(user);
 			} catch (DataAccess.ConflictException) {
 				return 0;
+			} catch {
+				throw new FaultException("internal error", new FaultCode("error"));
+			}
+		}
+
+		[OperationContract]
+		[WebInvoke(Method = "POST", BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]
+		public bool check(uint uid, string sid) { // cacheable
+			try {
+				return DataAccess.ValidateLogin(uid, sid);
 			} catch {
 				throw new FaultException("internal error", new FaultCode("error"));
 			}

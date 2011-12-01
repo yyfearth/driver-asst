@@ -1,7 +1,7 @@
 USE [KnightRider]
 GO
 
-/****** Object:  Table [dbo].[User]    Script Date: 11/26/2011 00:43:25 ******/
+/****** Object:  Table [dbo].[User]    Script Date: 12/01/2011 03:10:29 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -14,7 +14,7 @@ GO
 CREATE TABLE [dbo].[User](
 	[ID] [int] IDENTITY(1,1) NOT NULL,
 	[Email] [varchar](100) NOT NULL,
-	[Username] [varchar](50) NOT NULL,
+	[Password] [char](40) NOT NULL,
 	[FirstName] [nvarchar](50) NULL,
 	[LastName] [nvarchar](50) NULL,
 	[Phone] [varchar](15) NULL,
@@ -30,10 +30,6 @@ CREATE TABLE [dbo].[User](
  CONSTRAINT [IX_User_Email_U] UNIQUE NONCLUSTERED 
 (
 	[Email] ASC
-)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY],
- CONSTRAINT [IX_User_Name_U] UNIQUE NONCLUSTERED 
-(
-	[Username] ASC
 )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 

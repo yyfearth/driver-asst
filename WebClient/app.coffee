@@ -3,13 +3,47 @@
 # app init
 window.app = # ns
 	back: -> history.go -1
+# svc
+svc = (cfg) ->
+	$.mobile.showPageLoadingMsg()
+	$.ajax
+		url: "svc/#{cfg.svc}.svc/#{cfg.method}"
+		type: 'POST'
+		dataType: 'json'
+		contentType: 'application/json;charset=utf-8'
+		data: JSON.stringify cfg.data
+		processdata: false
+		complete: (xhr) ->
+			$.mobile.hidePageLoadingMsg()
+			cfg.complete?()
+		success: (data, xhr) ->
+			if data?.d?
+				cfg.callback data.d
+			else
+				alert 'Network Error'
+				console.log 'err', xhr, xhr.statusText # error
+		error: (xhr) ->
+			alert 'Network Error'
+			console.log 'err', xhr, xhr.statusText
+	return false;
+# retrieve user profile
 try
 	app.user = JSON.parse (sessionStorage.user or localStorage.user)
+	if app.user?.uid > 0 and app.user?.sid?.length is 32
+		location.hash = '#home'
+		svc
+			svc: 'user'
+			method: 'check'
+			data:
+				uid: app.user.uid
+				sid: app.user.sid
+			callback: (ok) ->
+				console.log 'check', ok
+				$.mobile.changePage('#login', transition: 'none') if not ok
+				null # end of callback
+	else location.hash = '#login'
 catch e
 	app.user = null
-# init screen
-#location.hash = if sid?.length is 32 then '#home' else '#login'
-location.hash = '#home'
 # add back and home button to every page except home
 $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append $('[data-btn-role="back"],[data-btn-role="home"]')
 $('#search [data-btn-role="home"]').hide()
@@ -42,10 +76,6 @@ svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.72
 	trafficLayer = new google.maps.TrafficLayer()
 	trafficLayer.setMap @
 	$.extend @,
-		#move: (id) =>
-			#@el.detach()
-			#$("##{id} .map").append @el
-			#@ # end of move
 		setMarkers: (markers_cfg) =>
 			console.log 'markers', markers_cfg
 			if not markers_cfg
@@ -103,169 +133,6 @@ $('[data-role="page"]').bind
 		#map.el[if $(@).hasClass('has-map') then 'show' else 'hide']().css('opacity', 1)
 console.log 'user', app.user
 
-# home page
-$('#home').bind
-	pagebeforeshow: ->
-		if not (app.user?.sid?.length is 32)
-			$.mobile.changePage '#login', transition: 'none'
-			return
-		return if $('#map', @).length
-		console.log 'home pageshow'
-		# init nav api and home page
-		map.getCurPos (curlatlng, addr) ->
-			$('#home_addr').text addr if addr? # set addr info
-			@setZoom 15
-			@setMarkers position: curlatlng # set cur marker
-			#@move 'home'
-		#@auto = setInterval (->
-		#	map.getCurPos (curlatlng, addr) -> $('#home_addr').text addr if addr? # set addr info
-		#), 30000 # every 30s
-		#maps.getCurPos ((curlatlng) -> @map.mark curlatlng) if @map? and not @map.getCenter()?.equals curlatlng
-		@ # end of home page show
-	#pageshow: ->
-		#if (not sid? or sid.length isnt 32)
-			#$.mobile.changePage '#login', transition: 'none'
-		#map.el.show()
-	#pagehide: ->
-		#@auto = clearInterval @auto
-
-# util js
-`function xml2json(b,g,h){function j(b,g){if(!b)return null;var c="",a=null;if(b.childNodes&&0<b.childNodes.length)for(var i=0;i<b.childNodes.length;i++){var d=b.childNodes[i],f=d.nodeType,e=d.localName||d.nodeName||"",h=d.text||d.nodeValue||"";if(8!=f)if(3==f||4==f||!e)c+=h.replace(/^\s+|\s+$/g,"");else if(a=a||{},a[e]){if(!(a[e]instanceof Array)||!a[e].length)a[e]=[a[e]];a[e].push(j(d,!0))}else a[e]=j(d,!1)}if(b.attributes&&!k&&0<b.attributes.length){a=a||{};for(d=0;d<b.attributes.length;d++)e=b.attributes[d],f=e.name||"",e=e.value,a[f]?(!(a[f]instanceof Array)&&a[f].length&&(a[f]=[a[f]]),a[f].push(e)):a[f]=e}if(a){if(""!=c){d=new String(c);for(i in a)d[i]=a[i];a=d}if(c=a.text?("object"==typeof a.text?a.text:[a.text||""]).concat([c]):c)a.text=c;c=""}a=a||c;if(l){c&&(a={});if(c=a.text||c||"")a.text=c;!g&&!(a instanceof Array)&&(a=[a])}return a}var l=g,k=h;if(!b)return{};"string"==typeof b&&(b=q(b));if(b.nodeType){if(3==b.nodeType||4==b.nodeType)return b.nodeValue;b=9==b.nodeType?b.documentElement:b;g=j(b,!0);b=b=null;return g}}function q(b){var g;try{var h=new DOMParser;h.async=!1;g=h.parseFromString(b,"text/xml")}catch(j){throw Error("Error parsing XML string");}return g}`
-`function hash(b){function i(b,c){var d=(b&65535)+(c&65535);return(b>>16)+(c>>16)+(d>>16)<<16|d&65535}var h;h=[];for(var e=0;e<b.length*8;e+=8)h[e>>5]|=(b.charCodeAt(e/8)&255)<<24-e%32;b=b.length*8;h[b>>5]|=128<<24-b%32;h[(b+64>>9<<4)+15]=b;for(var b=Array(80),e=1732584193,d=-271733879,f=-1732584194,g=271733878,j=-1009589776,k=0;k<h.length;k+=16){for(var l=e,m=d,n=f,o=g,p=j,c=0;c<80;c++){b[c]=c<16?h[k+c]:(b[c-3]^b[c-8]^b[c-14]^b[c-16])<<1|(b[c-3]^b[c-8]^b[c-14]^b[c-16])>>>31;var q=i(i(e<<5|e>>>27,c<20?d&f|~d&g:c<40?d^f^g:c<60?d&f|d&g|f&g:d^f^g),i(i(j,b[c]),c<20?1518500249:c<40?1859775393:c<60?-1894007588:-899497514)),j=g,g=f,f=d<<30|d>>>2,d=e,e=q}e=i(e,l);d=i(d,m);f=i(f,n);g=i(g,o);j=i(j,p)}h=[e,d,f,g,j];b="";for(e=32;--e;){for(d=a=0;d<h.length;d++)a+=(h[d]&1)<<d,h[d]>>=1;b+="hzv4ut7rpmed91yw5ik6n8sobax32gfcy2y0f3e1a8r9t6h"[a]}return b}`
-# login svc
-svc = (cfg) ->
-	$.mobile.showPageLoadingMsg()
-	$.ajax
-		url: "svc/#{cfg.svc}.svc/#{cfg.method}"
-		type: 'POST'
-		dataType: 'json'
-		contentType: 'application/json;charset=utf-8'
-		data: JSON.stringify cfg.data
-		processdata: false
-		complete: (xhr) ->
-			$.mobile.hidePageLoadingMsg()
-			cfg.complete?()
-		success: (data, xhr) ->
-			if data?.d?
-				cfg.callback data.d
-			else
-				alert 'Network Error'
-				console.log 'err', xhr, xhr.statusText # error
-		error: (xhr) ->
-			alert 'Network Error'
-			console.log 'err', xhr, xhr.statusText
-	return false;
-
-# login dlg
-$('#login').bind
-	pagecreate: ->
-		$('#login_form').submit (e) ->
-			#fields = @fields = 
-			#$('input, select', @)
-			e.preventDefault()
-			e.stopPropagation()
-			#@fields.mobile 'disable'
-			inputs = $('input', @).textinput 'disable'
-			slider = $('select', @).slider 'disable'
-			btns = $('button', @).button 'disable'
-			$('#btn_reg').addClass 'ui-disabled'
-			email = $('#email').val().trim()
-			password = $('#password').val()
-			return false if not email or not password
-			pk = hash("\0#{email}\xffKnightRider\xff#{password}\0\x58\xb5\x04\x05\xf1\x50\x47\x6f\xf0\x40\xd8\xf4\xed\x9d\xd2\x79\xc0\x6e\xa6\xd9\xff")
-			autologin = $('#autologin').val() is 'on'
-			svc
-				svc: 'user'
-				method: 'login'
-				data:
-					email: email
-					password: pk
-				callback: (data) ->
-					console.log data
-					if data.uid and data.sid?.length is 32
-						app.user = uid: data.uid, email: email, sid: data.sid
-						j = sessionStorage.user = JSON.stringify app.user
-						localStorage.user = j if autologin
-						$.mobile.changePage '#home', transition: 'flip'
-					else
-						alert 'Login Failed, please try again'
-				complete: ->
-					btns.button 'enable'
-					inputs.textinput 'enable'
-					slider.slider 'enable'
-					$('#btn_reg').removeClass 'ui-disabled'
-			false # end of submit
-		@ # end of login
-	pagebeforehide: -> $('#login_form_warp').hide()
-	pagebeforeshow: -> $('#login_form_warp').hide()
-	pageshow: ->
-		$('#login_form_warp').show()
-		app.user = null
-		sessionStorage.user = null
-		localStorage.user = null
-
-$('#reg_form').submit (e) ->
-	e.preventDefault()
-	e.stopPropagation()
-	if @password.value isnt @password2.value
-		alert 'Password does not match!'
-		@password2.focus()
-		return false
-	u =
-		email: @email.value
-		password: hash @password.value
-		fullname:
-			first: @first.value
-			last: @last.value
-		phone: @phone.value
-	console.log 'reg', u
-	svc
-		svc: 'user',
-		method: 'reg'
-		data: (user: u),
-		callback: (uid) ->
-			console.log 'new id:', uid
-			if uid < 1
-				alert 'Email already exists!'
-			else
-				$('#email').val u.email
-				$('#reg').dialog 'close'
-				alert 'Registration successful!'
-	false
-
-$('#appointment').bind pagebeforeshow: ->
-	$('#datetime').val Date(Date.parse(new Date()) + 60 * 60 * 1000).toLocaleString()
-	$.mobile.changePage '#login', (transition: 'flip', reverse: true) if not (app.user?.sid?.length is 32)
-	false
-$('#appt_form').submit (e) ->
-	return false if not (app.user?.sid?.length is 32) or (app.user?.uid is 0)
-	e.preventDefault()
-	e.stopPropagation()
-	# validate hours
-	appt =
-		user: app.user.uid
-		place: app.selected_place.id
-		contact:
-			name: @name.value
-			phone: @phone.value
-		datetime: "\/Date(#{Date.parse(@datetime.value)}-0000))\/"
-		message: @comments.value
-	console.log 'appt', appt
-	svc
-		svc: 'appointment',
-		method: 'add'
-		data:
-			appt: appt
-			sid: app.user.sid
-		callback: (success) ->
-			console.log 'appt success:', success
-			if !success
-				$.mobile.changePage '#login', (transition: 'flip', reverse: true)
-			else
-				$('#appointment').dialog 'close'
-				alert 'Appointment sent successful!'
-	false
-
 # weather api
 $.ajax
 	url:'gapi?&hl=en-us&weather=san+jose,ca'
@@ -300,6 +167,149 @@ finally
 		else
 			$('#history_list_header').after '<li data-role="list-divider" class="ui-body-c list-none">(None)</li>'
 
+# util js
+`function xml2json(b,g,h){function j(b,g){if(!b)return null;var c="",a=null;if(b.childNodes&&0<b.childNodes.length)for(var i=0;i<b.childNodes.length;i++){var d=b.childNodes[i],f=d.nodeType,e=d.localName||d.nodeName||"",h=d.text||d.nodeValue||"";if(8!=f)if(3==f||4==f||!e)c+=h.replace(/^\s+|\s+$/g,"");else if(a=a||{},a[e]){if(!(a[e]instanceof Array)||!a[e].length)a[e]=[a[e]];a[e].push(j(d,!0))}else a[e]=j(d,!1)}if(b.attributes&&!k&&0<b.attributes.length){a=a||{};for(d=0;d<b.attributes.length;d++)e=b.attributes[d],f=e.name||"",e=e.value,a[f]?(!(a[f]instanceof Array)&&a[f].length&&(a[f]=[a[f]]),a[f].push(e)):a[f]=e}if(a){if(""!=c){d=new String(c);for(i in a)d[i]=a[i];a=d}if(c=a.text?("object"==typeof a.text?a.text:[a.text||""]).concat([c]):c)a.text=c;c=""}a=a||c;if(l){c&&(a={});if(c=a.text||c||"")a.text=c;!g&&!(a instanceof Array)&&(a=[a])}return a}var l=g,k=h;if(!b)return{};"string"==typeof b&&(b=q(b));if(b.nodeType){if(3==b.nodeType||4==b.nodeType)return b.nodeValue;b=9==b.nodeType?b.documentElement:b;g=j(b,!0);b=b=null;return g}}function q(b){var g;try{var h=new DOMParser;h.async=!1;g=h.parseFromString(b,"text/xml")}catch(j){throw Error("Error parsing XML string");}return g}`
+`function sha1(a){for(var d=[],b=0;b<8*a.length;b+=8)d[b>>5]|=(a.charCodeAt(b/8)&255)<<24-b%32;a=8*a.length;d[a>>5]|=128<<24-a%32;d[(a+64>>9<<4)+15]=a;for(var a=Array(80),b=1732584193,e=-271733879,f=-1732584194,g=271733878,i=-1009589776,j=0;j<d.length;j+=16){for(var k=b,l=e,m=f,n=g,o=i,c=0;80>c;c++){a[c]=16>c?d[j+c]:(a[c-3]^a[c-8]^a[c-14]^a[c-16])<<1|(a[c-3]^a[c-8]^a[c-14]^a[c-16])>>>31;var p=h(h(b<<5|b>>>27,20>c?e&f|~e&g:40>c?e^f^g:60>c?e&f|e&g|f&g:e^f^g),h(h(i,a[c]),20>c?1518500249:40>c?1859775393:60>c?-1894007588:-899497514)),i=g,g=f,f=e<<30|e>>>2,e=b,b=p}b=h(b,k);e=h(e,l);f=h(f,m);g=h(g,n);i=h(i,o)}d=[b,e,f,g,i];a="";for(b=0;b<4*d.length;b++)a+="0123456789abcdef".charAt(d[b>>2]>>8*(3-b%4)+4&15)+"0123456789abcdef".charAt(d[b>>2]>>8*(3-b%4)&15);return a};function h(a,d){var b=(a&65535)+(d&65535);return(a>>16)+(d>>16)+(b>>16)<<16|b&65535};`
+hash = (str1, str2) ->
+	h = 'KnightRider\x58\xb5\x04\x05\xf1\x50\x47\x6f\xf0\x40\xd8\xf4\xed\x9d\xd2\x79\xc0\x6e\xa6\xd9\xffKnightRider'
+	sha1(h + str1 + sha1(h + str1 + '\xff' + str2 + h) + str2 + h)
+# home page
+$('#home').bind
+	pagebeforeshow: ->
+		if not (app.user?.sid?.length is 32)
+			$.mobile.changePage '#login', transition: 'none'
+			return
+		return if $('#map', @).length
+		console.log 'home pageshow'
+		# init nav api and home page
+		map.getCurPos (curlatlng, addr) ->
+			$('#home_addr').text addr if addr? # set addr info
+			@setZoom 15
+			@setMarkers position: curlatlng # set cur marker
+			#@move 'home'
+		#@auto = setInterval (->
+		#	map.getCurPos (curlatlng, addr) -> $('#home_addr').text addr if addr? # set addr info
+		#), 30000 # every 30s
+		#maps.getCurPos ((curlatlng) -> @map.mark curlatlng) if @map? and not @map.getCenter()?.equals curlatlng
+		@ # end of home page show
+	#pagehide: ->
+		#@auto = clearInterval @auto
+
+# login dlg
+$('#login').bind
+	pagecreate: ->
+		$('#login_form').submit (e) ->
+			#fields = @fields = 
+			#$('input, select', @)
+			e.preventDefault()
+			e.stopPropagation()
+			#@fields.mobile 'disable'
+			inputs = $('input', @).textinput 'disable'
+			slider = $('select', @).slider 'disable'
+			btns = $('button', @).button 'disable'
+			$('#btn_reg').addClass 'ui-disabled'
+			email = $('#email').val().trim()
+			password = $('#password').val()
+			return false if not email or not password
+			pk = hash email.toLowerCase(), password
+			autologin = $('#autologin').val() is 'on'
+			svc
+				svc: 'user'
+				method: 'login'
+				data:
+					email: email
+					password: pk
+				callback: (data) ->
+					console.log data
+					if data.uid and data.sid?.length is 32
+						app.user = uid: data.uid, email: email, sid: data.sid
+						j = sessionStorage.user = JSON.stringify app.user
+						localStorage.user = j if autologin
+						$.mobile.changePage '#home', transition: 'flip'
+					else
+						alert 'Login Failed, please try again'
+				complete: ->
+					btns.button 'enable'
+					inputs.textinput 'enable'
+					slider.slider 'enable'
+					$('#btn_reg').removeClass 'ui-disabled'
+			false # end of submit
+		@ # end of login
+	pagebeforehide: -> $('#login_form_warp').hide()
+	pagebeforeshow: -> $('#login_form_warp').hide()
+	pageshow: ->
+		$('#login_form_warp').show()
+		app.user = null
+		sessionStorage.user = null
+		localStorage.user = null
+
+# reg dlg
+$('#reg_form').submit (e) ->
+	e.preventDefault()
+	e.stopPropagation()
+	if @password.value isnt @password2.value
+		alert 'Password does not match!'
+		@password2.focus()
+		return false
+	email = @email.value.trim()
+	password = @password.value
+	pk = hash email.toLowerCase(), password
+	u =
+		email: email
+		password: pk
+		fullname:
+			first: @first.value.trim()
+			last: @last.value.trim()
+		phone: @phone.value.trim()
+	console.log 'reg', u
+	svc
+		svc: 'user',
+		method: 'reg'
+		data: (user: u),
+		callback: (uid) ->
+			console.log 'new id:', uid
+			if uid < 1
+				alert 'Email already exists!'
+			else
+				$('#email').val u.email
+				$('#reg').dialog 'close'
+				alert 'Registration successful!'
+	false
+
+# appointment page
+$('#appointment').bind pagebeforeshow: ->
+	$('#datetime').val Date(Date.parse(new Date()) + 60 * 60 * 1000).toLocaleString()
+	$.mobile.changePage '#login', (transition: 'flip', reverse: true) if not (app.user?.sid?.length is 32)
+	false
+$('#appt_form').submit (e) ->
+	return false if not (app.user?.sid?.length is 32) or (app.user?.uid is 0)
+	e.preventDefault()
+	e.stopPropagation()
+	# validate hours
+	appt =
+		user: app.user.uid
+		place: app.selected_place.id
+		contact:
+			name: @name.value
+			phone: @phone.value
+		datetime: "\/Date(#{Date.parse(@datetime.value)}-0000))\/"
+		message: @comments.value
+	console.log 'appt', appt
+	svc
+		svc: 'appointment',
+		method: 'add'
+		data:
+			appt: appt
+			sid: app.user.sid
+		callback: (success) ->
+			console.log 'appt success:', success
+			if !success
+				$.mobile.changePage '#login', (transition: 'flip', reverse: true)
+			else
+				$('#appointment').dialog 'close'
+				alert 'Appointment sent successful!'
+	false
+
 # search menu page
 # $('#search').bind pageshow: -> @map.keyword = null if @map? # clear app.search_keyword
 # bind buttons and menus
@@ -319,6 +329,7 @@ $('#search_history').bind 'pageshow pagebeforeshow', -> $('#history_list').listv
 $('#custom_search_form').submit ->
 	input = $('#input_search')
 	keyword = $.trim input.val()
+	keyword.custom = true
 	if keyword
 		app.search_keyword = keyword
 		$.mobile.changePage '#result'
@@ -332,11 +343,11 @@ window.onbeforeunload = ->
 
 # result page
 $('#result').bind
-	pageshow: ->
+	pagebeforeshow: ->
 		console.log 'search for', app.search_keyword
 		if not app.search_keyword
 			app.back(); return
-		$.mobile.hidePageLoadingMsg()
+		$.mobile.showPageLoadingMsg()
 		#@map.keyword = null # init app.result.keyword
 		#app.result.keyword = app.search_keyword
 		# clear old results
@@ -391,7 +402,7 @@ $('#result').bind
 						# set markers to map
 						map.setMarkers markers
 						# save history
-						if app.history[0] isnt app.search_keyword
+						if app.search_keyword.custom and app.history[0] isnt app.search_keyword
 							app.history.unshift app.search_keyword
 							app.history.refresh() # refresh list
 					else alert 'Search Error'
@@ -410,6 +421,13 @@ $('#result_list a').live vclick: ->
 	console.log @id
 	app.selected_place = app.result_map[@id]
 $('#detail').bind
+	pagecreate: ->
+		$('#apt_cancel').bind vclick: (e) ->
+			e.preventDefault()
+			e.stopPropagation()
+			$('#appointment').dialog('close')
+			return false;
+			@ # end fo create
 	pageshow: ->
 		detial_info = $('#detial_info')
 		detial_info.height document.body.clientHeight - detial_info.offset().top - @fh
@@ -418,24 +436,26 @@ $('#detail').bind
 		if not app.selected_place
 			app.back()
 			return
-		$('#apt_cancel').bind vclick: (e) ->
-			e.preventDefault()
-			e.stopPropagation()
-			$('#appointment').dialog('close')
-			return false;
-		plcsvc.getDetails (reference: app.selected_place.reference), (place, status) ->
-			if status is google.maps.places.PlacesServiceStatus.OK
-				map.setCenter place.geometry.location
-				map.setMarkers position: place.geometry.location
-				map.setZoom 15
-				$('#detail_place').text place.name
-				detial_info.html "<ul>
+		show_detail = (place) ->
+			map.setCenter place.geometry.location
+			map.setMarkers position: place.geometry.location
+			map.setZoom 15
+			$('#detail_place').text place.name
+			detial_info.html "<ul>
 <li>#{place.formatted_address}</li><li>#{place.formatted_phone_number}</li>
 <li>#{place.types.join(', ').replace(/_/g, ' ').toUpperCase()}</li>
 <li>#{if place.rating? then proc_rating(place.rating) else '(No Rating Data)' }</li>
 <li><a href=\"#{place.website or place.url}\" target=\"_blank\">
 #{if place.website? then 'Visit its Website' else 'View on Google Place'}</a></li></ul>"
-				console.log place
+			console.log place
+		if app.selected_place.__detail
+			show_detail app.selected_place.__detail
+		else plcsvc.getDetails (reference: app.selected_place.reference), (place, status) ->
+			if status is google.maps.places.PlacesServiceStatus.OK
+				app.selected_place.__detail = place
+				show_detail place
+		@ # end of show
+
 # direction
 $('#direction').bind
 	pageshow: ->

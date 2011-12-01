@@ -1,7 +1,7 @@
 USE [KnightRider]
 GO
 
-/****** Object:  Table [dbo].[Place]    Script Date: 11/26/2011 00:43:19 ******/
+/****** Object:  Table [dbo].[Place]    Script Date: 12/01/2011 03:10:21 ******/
 SET ANSI_NULLS ON
 GO
 
