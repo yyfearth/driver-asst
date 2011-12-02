@@ -207,10 +207,10 @@ if window.openDatabase?
 				method: 'sync'
 				type: 'get'
 				data:
-					last: date_svc.dateToStr new Date app.user.last_sync_alert or 0
+					last: date_svc.dateToStr new Date app.user?.last_sync_alert or 0
 				callback: (data) ->
 					console.log 'sync', svc_name, data
-					app.user.last_sync_alert = new Date().getTime() - 10000 # -10s
+					#app.user.last_sync_alert = new Date().getTime() - 10000 if app.user? # -10s
 					callback? data
 			@ # end of sync
 		app.db.alerts_sync = ->
