@@ -11,11 +11,11 @@ namespace KnightRider {
 	[ServiceContract(Namespace = "")]
 	[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
 	public class Alerts {
-		[OperationContract]
-		[WebInvoke(BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]
-		public void sync() {
-			// Add your operation implementation here
-			return;
+		//private static DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local); // or Utc
+		[OperationContract, WebGet]
+		public AlertJson[] sync(DateTime last) {
+			//DateTime lastdt = last > 0 ? origin.AddTicks(last) : new DateTime(0);
+			return DataAccess.SyncAlerts(last);
 		}
 	}
 }

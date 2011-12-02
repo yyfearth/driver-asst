@@ -9,7 +9,9 @@
 <body>
     <form id="form1" runat="server">
     <div>
-    
+		Alert:
+		<asp:TextBox ID="AlertText" runat="server"></asp:TextBox>
+    	<asp:Button ID="AlertAdd" runat="server" onclick="Add_Click" Text="Add" />
     </div>
     </form>
 </body>

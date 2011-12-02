@@ -23,5 +23,13 @@ namespace KnightRider {
 			var uid = DataAccess.AddUser(u);
 			svc.login(u.email, u.password);*/
 		}
+
+		protected void Add_Click(object sender, EventArgs e) {
+			var msg = AlertText.Text.Trim();
+			if (msg != string.Empty) {
+				DataAccess.AddAlert(new AlertJson() { message = msg });
+				AlertText.Text = "";
+			}
+		}
 	}
 }

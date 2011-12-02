@@ -7,8 +7,11 @@ using System.Runtime.Serialization;
 namespace KnightRider {
 	[DataContract]
 	public class DataJson {
+		[DataMember]
 		public uint id { get; set; }
+		[DataMember]
 		public DateTime created { get; set; }
+		[DataMember]
 		public DateTime modified { get; set; }
 		private dynamic ExtraData { get; set; } // json
 	}

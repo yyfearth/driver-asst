@@ -32,7 +32,7 @@ namespace KnightRider {
 				string sql = "SELECT ID FROM [User] WHERE Email = @Email and Password = @PK";
 				SqlCommand cmd = new SqlCommand(sql, cn);
 				cmd.Parameters.AddWithValue("@Email", email);
-				var key = hash(email.ToLower() + '\0' + password);
+				var key = hash(email.ToLower() + '\0' + password.ToLower());
 				cmd.Parameters.AddWithValue("@PK", key);
 				cn.Open();
 				var ret = cmd.ExecuteScalar();
@@ -41,7 +41,7 @@ namespace KnightRider {
 			}
 		}
 
-		public static bool ValidateLogin(uint uid, string sid){
+		public static bool ValidateLogin(uint uid, string sid) {
 			return ValidateLogin(uid, Guid.ParseExact(sid, "N"));
 		}
 		public static bool ValidateLogin(uint userid, Guid sid) {
@@ -118,7 +118,7 @@ namespace KnightRider {
 				string sql = "INSERT INTO [User] (Email, Password, FirstName, LastName, Phone, Type, Status, CreatedTime, ModifiedTime) VALUES (@Email, @Password, @FirstName, @LastName, @Phone, 1, 1, GETDATE(), GETDATE())";
 				SqlCommand cmd = new SqlCommand(sql, cn);
 				cmd.Parameters.AddWithValue("@Email", user.email);
-				cmd.Parameters.AddWithValue("@Password", hash(user.email.ToLower() + '\0' + user.password));
+				cmd.Parameters.AddWithValue("@Password", hash(user.email.ToLower() + '\0' + user.password.ToLower()));
 				cmd.Parameters.AddWithValue("@FirstName", user.fullname.first);
 				cmd.Parameters.AddWithValue("@LastName", user.fullname.last);
 				cmd.Parameters.AddWithValue("@Phone", user.phone);
@@ -148,11 +148,11 @@ namespace KnightRider {
 		public static AppointmentJson[] SyncAppointments(DateTime lastmod) {
 			using (SqlConnection cn = new SqlConnection(conn)) {
 				SqlCommand cmd;
-				if (lastmod == null) {
+				if (lastmod == null || lastmod.Ticks == 0) {
 					string sql = "SELECT * FROM [Appointment] WHERE Status!=0";
 					cmd = new SqlCommand(sql, cn);
 				} else {
-					string sql = "SELECT * FROM [Appointment] WHERE Status!=0 and ModifedTime >= @MT";
+					string sql = "SELECT * FROM [Appointment] WHERE Status!=0 and ModifiedTime >= @MT";
 					cmd = new SqlCommand(sql, cn);
 					cmd.Parameters.AddWithValue("@MT", lastmod);
 				}
@@ -213,11 +213,11 @@ namespace KnightRider {
 		public static AlertJson[] SyncAlerts(DateTime lastmod) {
 			using (SqlConnection cn = new SqlConnection(conn)) {
 				SqlCommand cmd;
-				if (lastmod == null) {
+				if (lastmod == null || lastmod.Ticks == 0) {
 					string sql = "SELECT * FROM [Alert] WHERE Status!=0";
 					cmd = new SqlCommand(sql, cn);
 				} else {
-					string sql = "SELECT * FROM [Alert] WHERE Status!=0 and ModifedTime >= @MT";
+					string sql = "SELECT * FROM [Alert] WHERE Status!=0 and ModifiedTime >= @MT";
 					cmd = new SqlCommand(sql, cn);
 					cmd.Parameters.AddWithValue("@MT", lastmod);
 				}
@@ -229,7 +229,7 @@ namespace KnightRider {
 					var a = new AlertJson() {
 						id = Convert.ToUInt32(rdr["ID"]),
 						datetime = (DateTime)rdr["DateTime"],
-						expired = (DateTime)rdr["ExpiredTime"],
+						expired = (DateTime)rdr["ExpireDateTime"],
 						summary = (string)rdr["Summary"],
 						message = (string)rdr["Message"],
 						importance = (byte)rdr["Importance"],
@@ -250,9 +250,12 @@ namespace KnightRider {
 			using (SqlConnection cn = new SqlConnection(conn)) {
 				string sql = "INSERT INTO [Alert] (DateTime, ExpireDateTime, Summary, Message, Importance, Type, Status, CreatedTime, ModifiedTime) VALUES (@DateTime, @ExpireDateTime, @Summary, @Message, @Importance, 1, 1, GETDATE(), GETDATE())";
 				SqlCommand cmd = new SqlCommand(sql, cn);
-				if (alert.datetime == null) alert.datetime = DateTime.Now;
-				if (alert.expired == null) alert.expired = alert.datetime.AddHours(1); // 1h default
-				if (alert.summary == null) alert.summary = alert.message.Substring(0, 100);
+				if (alert.datetime == null || alert.datetime.Ticks == 0)
+					alert.datetime = DateTime.Now;
+				if (alert.expired == null || alert.expired.Ticks == 0)
+					alert.expired = alert.datetime.AddDays(1); // 1d default
+				if (alert.summary == null)
+					alert.summary = alert.message.Length < 100 ? alert.message : alert.message.Substring(0, 95) + "...";
 				cmd.Parameters.AddWithValue("@DateTime", alert.datetime);
 				cmd.Parameters.AddWithValue("@ExpireDateTime", alert.expired);
 				cmd.Parameters.AddWithValue("@Summary", alert.summary);

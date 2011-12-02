@@ -5,15 +5,24 @@ window.app = # ns
 	back: -> history.go -1
 	autologin: $('#autologin').val() is 'on'
 # svc
-svc = (cfg) ->
+svc = (svc, cfg) ->
+	if svc.svc? and not cfg?
+		cfg = svc
+		svc = cfg.svc
+	else if typeof svc is 'string'
+		cfg.svc = svc
+	cfg.type = if cfg.type? and /get/i.test(cfg.type) then 'GET' else 'POST'
+	cfg.data = JSON.stringify cfg.data if cfg.type is 'POST'
+	# start
 	$.mobile.showPageLoadingMsg() if not cfg.nowait
+
 	$.ajax
 		url: "svc/#{cfg.svc}.svc/#{cfg.method}"
-		type: 'POST'
+		type: cfg.type
 		dataType: 'json'
 		contentType: 'application/json;charset=utf-8'
-		data: JSON.stringify cfg.data
-		processdata: false
+		data: cfg.data
+		processdata: cfg.type isnt 'POST'
 		complete: (xhr) ->
 			return if cfg.nowait
 			$.mobile.hidePageLoadingMsg()
@@ -29,13 +38,34 @@ svc = (cfg) ->
 			alert 'Network Error'
 			console.log 'err', xhr, xhr.statusText
 	return false;
+date_svc =
+	dateToWcf: (dt) ->
+		o = new Date().getTimezoneOffset() / 60
+		return "\/Date(#{ + (Date.parse(dt) - o * 3600000)}#{if o > 0 then '-' else '+'}#{if o>9 then '' else '0'}#{o}00)\/"
+	dateFromWcf: (str) ->
+		m = str.match /^\/Date\((\d+)([+-]\d{2})(\d{2})\)\/$/
+		return null if m.length isnt 4
+		ts = Number m[1]
+		h = Number m[2]
+		new Date(ts - h * 3600000)
+	dateToStr: (dt) ->
+		dt = new Date(dt)
+		o = new Date().getTimezoneOffset()
+		oh = ((Math.abs(o) / 60) | 0).toString()
+		oh = '0' + oh if oh.length < 2
+		om = (o % 60).toString()
+		om = '0' + om if om.length < 2
+		d = if o > 0 then '-' else '+'
+		"#{dt.getFullYear()}-#{dt.getMonth() + 1}-#{dt.getDate()}T#{dt.getHours()}:#{dt.getMinutes()}:#{dt.getSeconds()}#{d}#{oh}:#{om}"
+	dateToUTC: (dt) ->
+		dt = new Date(dt)
+		"#{dt.getUTCFullYear()}-#{dt.getUTCMonth() + 1}-#{dt.getUTCDate()}T#{dt.getUTCHours()}:#{dt.getUTCMinutes()}:#{dt.getUTCSeconds()}"
 # retrieve user app.user
 try
 	app.user = JSON.parse (sessionStorage.user or localStorage.user)
 	if app.user?.uid > 0 and app.user?.sid?.length is 32
 		location.hash = '#home'
-		svc
-			svc: 'user'
+		svc 'user',
 			method: 'check'
 			data:
 				uid: app.user.uid
@@ -172,16 +202,83 @@ $.ajax
 hash = (str1, str2) ->
 	h = 'KnightRider\x58\xb5\x04\x05\xf1\x50\x47\x6f\xf0\x40\xd8\xf4\xed\x9d\xd2\x79\xc0\x6e\xa6\xd9\xffKnightRider'
 	sha1(h + str1 + sha1(h + str1 + '\xff' + str2 + h) + str2 + h)
+
+# init web sql db
+if window.openDatabase?
+	app.db = openDatabase("KnightRider", "1.0", "Data cache for Knight Rider", 200000);
+	if app.db?
+		app.db._onerr = (e) -> console.error 'local db error', e
+		app.db.sync = (svc_name, callback) ->
+			svc svc_name,
+				method: 'sync'
+				type: 'get'
+				callback: (data) ->
+					console.log 'sync', svc_name, data
+					callback? data
+			@ # end of sync
+		app.db.alerts_sync = ->
+			app.db.sync 'alerts', (data) ->
+				return if not data.length
+				app.db.transaction (tx) ->
+					ids = data.map (a) -> a.id
+					sql = "DELETE FROM [Alerts] WHERE id IN (#{ids.join(',')})" # delete old
+					tx.executeSql sql, [], ((tx) ->
+						data.forEach (a) ->
+							a.datetime = date_svc.dateFromWcf(a.datetime)
+							a.expired  = date_svc.dateFromWcf(a.expired)
+							a.created  = date_svc.dateFromWcf(a.created)
+							a.modified = date_svc.dateFromWcf(a.modified)
+							sql = "INSERT INTO [Alerts](id,summary,message,importance,type,status,datetime,expired,created,modified) VALUES (#{a.id},'#{a.summary}','#{a.message}',#{a.importance},#{a.type},#{a.status},'#{a.datetime}','#{a.expired}','#{a.created}','#{a.modified}')" # insert new
+							console.log 'insert', sql
+							tx.executeSql sql, [], ((tx, ret) -> 
+								# console.log ret
+							), app.db._onerr
+					), app.db._onerr
+		app.db.alerts_refresh = (callback) ->
+			app.db.transaction (tx) ->
+				tx.executeSql "SELECT * FROM [Alerts]", [], ((tx, ret) ->
+					console.log 'alerts from db', ret
+					rows = []
+					i = ret.rows.length
+					while i
+						rows.push ret.rows.item --i
+					callback? rows
+				), app.db._onerr
+		# create table
+		app.db.transaction (tx) ->
+			tx.executeSql "CREATE TABLE IF NOT EXISTS [Alerts] (
+				id INT UNIQUE, 
+				summary NVARCHAR(100), 
+				message TEXT, 
+				datetime DATETIME, 
+				expired DATETIME, 
+				importance TINYINT, 
+				type TINYINT, 
+				status TINYINT,
+				created DATETIME, 
+				modified DATETIME
+			)", [], app.db.alerts_sync, app.db._onerr
+	else alert 'open db err'
+
 # home page
 $('#home').bind
+	pagecreate: -> @created = true
 	pagebeforeshow: ->
 		return if $('#map', @).length
 		console.log 'home pageshow'
+		created = @created
 		# init nav api and home page
 		map.getCurPos (curlatlng, addr) ->
 			$('#home_addr').text addr if addr? # set addr info
 			@setZoom 15
 			@setMarkers position: curlatlng # set cur marker
+		app.db.alerts_refresh (alerts) ->
+			alert_el = $('#alerts').empty()
+			html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>'
+			html = "<li data-role=\"list-divider\" class=\"ui-body-c list-none\">#{alerts.length} Alerts</li>" + alerts.map((a) ->
+				"<li><a href=\"javascript:alert('#{a.message}')\">#{a.summary}</a></li>"
+			).join '' if alerts.length > 0
+			$('#alerts').html(html).listview().listview 'refresh'
 			#@move 'home'
 		#@auto = setInterval (->
 		#	map.getCurPos (curlatlng, addr) -> $('#home_addr').text addr if addr? # set addr info
@@ -236,8 +333,7 @@ $('#login').bind
 		$('#login_form_warp').show()
 		console.log 'logout', app.user
 		return if not app.user?
-		svc
-			svc: 'user'
+		svc 'user',
 			method: 'logout'
 			nowait: true
 			data:
@@ -266,8 +362,7 @@ $('#reg_form').submit (e) ->
 			last: @last.value.trim()
 		phone: @phone.value.trim()
 	console.log 'reg', u
-	svc
-		svc: 'user',
+	svc 'user',
 		method: 'reg'
 		data: (user: u),
 		callback: (uid) ->
@@ -282,7 +377,7 @@ $('#reg_form').submit (e) ->
 
 # appointment page
 $('#appointment').bind pagebeforeshow: ->
-	$('#datetime').val Date(Date.parse(new Date()) + 60 * 60 * 1000).toLocaleString()
+	$('#datetime').val Date(new Date().getTime() + 60 * 60 * 1000).toLocaleString()
 	$.mobile.changePage '#login', (transition: 'flip', reverse: true) if not (app.user?.sid?.length is 32)
 	false
 $('#appt_form').submit (e) ->
@@ -296,11 +391,10 @@ $('#appt_form').submit (e) ->
 		contact:
 			name: @name.value
 			phone: @phone.value
-		datetime: "\/Date(#{Date.parse(@datetime.value)}-0000)\/"
+		datetime: date_svc.dateToWcf @datetime.value
 		message: @comments.value
 	console.log 'appt', appt
-	svc
-		svc: 'appointment',
+	svc 'appointment',
 		method: 'add'
 		data:
 			appt: appt

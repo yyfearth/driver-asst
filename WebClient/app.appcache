@@ -1,3 +1,11 @@
+CACHE MANIFEST
+
+#version 1.0 12-1-2011
+
+CACHE:
+
+#images
+
 # Google Weather Icons
 https://www.google.com/ig/images/weather/sunny.gif
 https://www.google.com/ig/images/weather/mostly_sunny.gif
@@ -20,3 +28,24 @@ https://www.google.com/ig/images/weather/fog.gif
 https://www.google.com/ig/images/weather/smoke.gif
 https://www.google.com/ig/images/weather/haze.gif
 https://www.google.com/ig/images/weather/flurries.gif
+
+#internal HTML documents
+index.html
+
+#style sheets
+app.css
+lib/jquery.mobile-1.0.min.css
+
+#style sheet images
+lib/images/ajax-loader.png
+lib/images/icons-18-black.png
+lib/images/icons-18-white.png
+res/kr.jpg
+
+#javascript files
+lib/jquery-1.7.1.min.js
+lib/jquery.mobile-1.0.min.js
+app.js
+
+NETWORK:
+*
