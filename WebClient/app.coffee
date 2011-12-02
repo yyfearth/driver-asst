@@ -50,13 +50,7 @@ date_svc =
 		new Date(ts - h * 3600000)
 	dateToStr: (dt) ->
 		dt = new Date(dt)
-		o = new Date().getTimezoneOffset()
-		oh = ((Math.abs(o) / 60) | 0).toString()
-		oh = '0' + oh if oh.length < 2
-		om = (o % 60).toString()
-		om = '0' + om if om.length < 2
-		d = if o > 0 then '-' else '+'
-		"#{dt.getFullYear()}-#{dt.getMonth() + 1}-#{dt.getDate()}T#{dt.getHours()}:#{dt.getMinutes()}:#{dt.getSeconds()}#{d}#{oh}:#{om}"
+		"#{dt.getFullYear()}-#{dt.getMonth() + 1}-#{dt.getDate()} #{dt.getHours()}:#{dt.getMinutes()}:#{dt.getSeconds()}"
 	dateToUTC: (dt) ->
 		dt = new Date(dt)
 		"#{dt.getUTCFullYear()}-#{dt.getUTCMonth() + 1}-#{dt.getUTCDate()}T#{dt.getUTCHours()}:#{dt.getUTCMinutes()}:#{dt.getUTCSeconds()}"
@@ -212,8 +206,11 @@ if window.openDatabase?
 			svc svc_name,
 				method: 'sync'
 				type: 'get'
+				data:
+					last: date_svc.dateToStr new Date app.user.last_sync_alert or 0
 				callback: (data) ->
 					console.log 'sync', svc_name, data
+					app.user.last_sync_alert = new Date().getTime() - 10000 # -10s
 					callback? data
 			@ # end of sync
 		app.db.alerts_sync = ->
@@ -285,6 +282,9 @@ $('#home').bind
 		#), 30000 # every 30s
 		#maps.getCurPos ((curlatlng) -> @map.mark curlatlng) if @map? and not @map.getCenter()?.equals curlatlng
 		@ # end of home page show
+	pageshow: ->
+		alert_el = $('#alerts')
+		alert_el.height document.body.clientHeight - alert_el.offset().top - @fh
 	#pagehide: ->
 		#@auto = clearInterval @auto
 

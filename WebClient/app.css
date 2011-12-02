@@ -105,8 +105,9 @@ a[data-btn-role="result"] img {
 	height: 40px;
 }
 #alerts {
-	height: 64px;
 	margin: 0;
+	overflow: hidden;
+	overflow-y: scroll;
 }
 #detial_info {
 	margin: 0px;
