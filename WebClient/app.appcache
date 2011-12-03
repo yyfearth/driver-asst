@@ -1,37 +1,37 @@
 CACHE MANIFEST
 
-#version 1.0 12-1-2011
+#version 1.0 12-3-2011
 
 CACHE:
 
 # Google Weather Icons
-https://www.google.com/ig/images/weather/sunny.gif
-https://www.google.com/ig/images/weather/mostly_sunny.gif
-https://www.google.com/ig/images/weather/partly_cloudy.gif
-https://www.google.com/ig/images/weather/mostly_cloudy.gif
-https://www.google.com/ig/images/weather/chance_of_storm.gif
-https://www.google.com/ig/images/weather/rain.gif
-https://www.google.com/ig/images/weather/chance_of_rain.gif
-https://www.google.com/ig/images/weather/chance_of_snow.gif
-https://www.google.com/ig/images/weather/cloudy.gif
-https://www.google.com/ig/images/weather/mist.gif
-https://www.google.com/ig/images/weather/storm.gif
-https://www.google.com/ig/images/weather/thunderstorm.gif
-https://www.google.com/ig/images/weather/chance_of_tstorm.gif
-https://www.google.com/ig/images/weather/sleet.gif
-https://www.google.com/ig/images/weather/snow.gif
-https://www.google.com/ig/images/weather/icy.gif
-https://www.google.com/ig/images/weather/dust.gif
-https://www.google.com/ig/images/weather/fog.gif
-https://www.google.com/ig/images/weather/smoke.gif
-https://www.google.com/ig/images/weather/haze.gif
-https://www.google.com/ig/images/weather/flurries.gif
+//www.google.com/ig/images/weather/sunny.gif
+//www.google.com/ig/images/weather/mostly_sunny.gif
+//www.google.com/ig/images/weather/partly_cloudy.gif
+//www.google.com/ig/images/weather/mostly_cloudy.gif
+//www.google.com/ig/images/weather/chance_of_storm.gif
+//www.google.com/ig/images/weather/rain.gif
+//www.google.com/ig/images/weather/chance_of_rain.gif
+//www.google.com/ig/images/weather/chance_of_snow.gif
+//www.google.com/ig/images/weather/cloudy.gif
+//www.google.com/ig/images/weather/mist.gif
+//www.google.com/ig/images/weather/storm.gif
+//www.google.com/ig/images/weather/thunderstorm.gif
+//www.google.com/ig/images/weather/chance_of_tstorm.gif
+//www.google.com/ig/images/weather/sleet.gif
+//www.google.com/ig/images/weather/snow.gif
+//www.google.com/ig/images/weather/icy.gif
+//www.google.com/ig/images/weather/dust.gif
+//www.google.com/ig/images/weather/fog.gif
+//www.google.com/ig/images/weather/smoke.gif
+//www.google.com/ig/images/weather/haze.gif
+//www.google.com/ig/images/weather/flurries.gif
 
 #internal HTML documents
 index.html
 
 #style sheets
-app.css
+#app.css
 lib/jquery.mobile-1.0.min.css
 
 #style sheet images
@@ -41,9 +41,15 @@ lib/images/icons-18-white.png
 res/kr.jpg
 
 #javascript files
+//maps.googleapis.com/maps/api/js?libraries=places&sensor=true&language=en-US
 lib/jquery-1.7.1.min.js
 lib/jquery.mobile-1.0.min.js
+#app.js
+
+# dev
+NETWORK:
 app.js
+app.css
 
 NETWORK:
 *

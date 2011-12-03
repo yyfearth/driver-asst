@@ -177,7 +177,10 @@
 			</form>
 		</div>
 	</div>
-	<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=true&language=en-US"></script>
-	<script type="text/javascript" src="app.js"></script>
+	<script type="text/javascript">
+	if (navigator.onLine)
+		document.writeln('<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=true&language=en-US"></s'+'cript>');
+	document.writeln('<script type="text/javascript" src="app.js"></s'+'cript>');
+	</script>
 </body>
 </html>

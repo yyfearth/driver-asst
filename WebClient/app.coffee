@@ -1,10 +1,19 @@
 ## Knight Rider
 ## Wilson @ yyfearth.com
+window.offline_mode = not navigator.onLine	
 # app init
 window.app = # ns
 	back: -> history.go -1
 	autologin: $('#autologin').val() is 'on'
-# svc
+	offline: ->
+		console.log 'offline', not navigator.onLine, 'offlinemode', window.offline_mode
+		if navigator.onLine and window.offline_mode
+			alert 'You are online now, App will reload and enable online features!'
+			location.reload()
+			return
+		not navigator.onLine
+$(document.body).addClass 'offline' if app.offline()
+# ========== svc ========== 
 svc = (svc, cfg) ->
 	if svc.svc? and not cfg?
 		cfg = svc
@@ -15,7 +24,6 @@ svc = (svc, cfg) ->
 	cfg.data = JSON.stringify cfg.data if cfg.type is 'POST'
 	# start
 	$.mobile.showPageLoadingMsg() if not cfg.nowait
-
 	$.ajax
 		url: "svc/#{cfg.svc}.svc/#{cfg.method}"
 		type: cfg.type
@@ -54,7 +62,7 @@ date_svc =
 	dateToUTC: (dt) ->
 		dt = new Date(dt)
 		"#{dt.getUTCFullYear()}-#{dt.getUTCMonth() + 1}-#{dt.getUTCDate()}T#{dt.getUTCHours()}:#{dt.getUTCMinutes()}:#{dt.getUTCSeconds()}"
-# retrieve user app.user
+# ========== profile ==========
 try
 	app.user = JSON.parse (sessionStorage.user or localStorage.user)
 	if app.user?.uid > 0 and app.user?.sid?.length is 32
@@ -82,7 +90,7 @@ app.save_profile = window.onbeforeunload = ->
 		localStorage.removeItem 'user'
 		sessionStorage.removeItem 'user'
 	return #"Sure to leave Knight Rider?"
-
+# ========== map ==========
 # add back and home button to every page except home
 $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append $('[data-btn-role="back"],[data-btn-role="home"]')
 $('#search [data-btn-role="home"]').hide()
@@ -95,113 +103,126 @@ $(window).resize ->
 	$(b)[if app.horizontal then 'addClass' else 'removeClass'] 'horizontal'
 	#map_spacers.add('#map').height Math.round (document.body.clientHeight - 93) * if app.horizontal then 1 else 0.45
 $(document.body).resize()
-$('#home').one pageshow: -> map.el.offset $('#home_map').offset()
+map = app.map = null
 # build shared map
-map = app.map = new google.maps.Map $('#map')[0],
-	zoom: 15
-	mapTypeId: google.maps.MapTypeId.ROADMAP
-	navigationControl: true
-	navigationControlOptions: 
-		style: google.maps.NavigationControlStyle.SMALL
-plcsvc = new google.maps.places.PlacesService map
-geocoder = new google.maps.Geocoder()
-dirSvc = new google.maps.DirectionsService()
-dirRenderer = new google.maps.DirectionsRenderer()
-svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.728271), new google.maps.LatLng(37.247821,-121.552734)
-# ext map
-(-> # @ is map
-	@el = $ '#map'
-	# add traffic
-	trafficLayer = new google.maps.TrafficLayer()
-	trafficLayer.setMap @
-	$.extend @,
-		setMarkers: (markers_cfg) =>
-			console.log 'markers', markers_cfg
-			if not markers_cfg
-				markers_cfg = null
-			else if not $.isArray markers_cfg
-				markers_cfg = [markers_cfg]
-			# clear old markers
-			@markers.forEach ((marker) -> marker.setMap null) if @markers?
-			# set new markers
-			if markers_cfg? # not null
-				@markers = markers_cfg.map (cfg) ->
-					cfg.map = map # auto set map
-					new google.maps.Marker cfg # return
-			else @markers = null
-			@ # end of set markers
-		getCurPos: (auto, callback) => # default auto center
-			if not callback?
-				callback = auto
-				auto = true
-			navigator.geolocation.getCurrentPosition ((pos) =>
-				# get geo location
-				curlatlng = new google.maps.LatLng pos.coords.latitude, pos.coords.longitude
-				console.log 'curlatlng', curlatlng
-				if not curlatlng.equals @getCenter()
-					curlatlng.changed = true
-				if auto and curlatlng.changed
-					# clear markders
-					@setMarkers null
-					# set center
-					@setCenter curlatlng
-					map_spacers.each (i, m) => $(m).css 'background-image', "url('https://maps.googleapis.com/maps/api/staticmap?center=#{curlatlng.lat()},#{curlatlng.lng()}&zoom=#{$(m).attr('data-map-zoom') or 15}&size=#{$(window).width()}x#{@el.height()}&maptype=roadmap&format=png8&sensor=true&language=en')"
-					# get addr
-					geocoder.geocode latLng: curlatlng, (results, status) =>
-						if status is google.maps.GeocoderStatus.OK
-							callback.call @, curlatlng, results[0]?.formatted_address
-						else
-							alert "Geocoder failed due to: #{status}\n App terminated!"
-						# set center again
+if not app.offline()
+	$('#home').one pageshow: -> map.el.offset $('#home_map').offset()
+	map = app.map = new google.maps.Map $('#map')[0],
+		zoom: 15
+		mapTypeId: google.maps.MapTypeId.ROADMAP
+		navigationControl: true
+		navigationControlOptions: 
+			style: google.maps.NavigationControlStyle.SMALL
+	map.plcsvc = new google.maps.places.PlacesService map
+	map.geocoder = new google.maps.Geocoder()
+	map.dirsvc = new google.maps.DirectionsService()
+	map.dirrdr = new google.maps.DirectionsRenderer()
+	map.svbounds = new google.maps.LatLngBounds new google.maps.LatLng(38.052417,-122.728271), new google.maps.LatLng(37.247821,-121.552734)
+	# ========== ext map ==========
+	(-> # @ is map
+		@el = $ '#map'
+		# add traffic
+		trafficLayer = new google.maps.TrafficLayer()
+		trafficLayer.setMap @
+		$.extend @,
+			setMarkers: (markers_cfg) =>
+				console.log 'markers', markers_cfg
+				if not markers_cfg
+					markers_cfg = null
+				else if not $.isArray markers_cfg
+					markers_cfg = [markers_cfg]
+				# clear old markers
+				@markers.forEach ((marker) -> marker.setMap null) if @markers?
+				# set new markers
+				if markers_cfg? # not null
+					@markers = markers_cfg.map (cfg) ->
+						cfg.map = map # auto set map
+						new google.maps.Marker cfg # return
+				else @markers = null
+				@ # end of set markers
+			getCurPos: (auto, callback) => # default auto center
+				if not callback?
+					callback = auto
+					auto = true
+				if app.offline()
+					callback.call @, null, null
+				else navigator.geolocation.getCurrentPosition ((pos) =>
+					# get geo location
+					curlatlng = new google.maps.LatLng pos.coords.latitude, pos.coords.longitude
+					console.log 'curlatlng', curlatlng
+					if not curlatlng.equals @getCenter()
+						curlatlng.changed = true
+					if auto and curlatlng.changed
+						# clear markders
+						@setMarkers null
+						# set center
 						@setCenter curlatlng
-				else callback.call @, curlatlng
-			), (-> alert 'App cannot run without geo location!') if navigator.geolocation?
-			@ # end of get cur pos
-).call map # end of ext map
-# map share
-$('[data-role="page"]').bind
-	pagebeforeshow: ->
-		map.el.css('opacity': 0, 'z-index': 0)
-	pageshow: ->
-		$.mobile.fixedToolbars.show()
-		@hh = $('[data-role="header"]', @)?.outerHeight() or 0
-		@fh = $('[data-role="footer"]', @)?.outerHeight() or 0
-		@bh = document.body.clientHeight - @hh - @fh
-		$('.map', @).add(map.el).height @bh * if app.horizontal then 1 else 0.45
-		map.el.css('opacity': 1, 'z-index': 10000) if $(@).hasClass('has-map')
-		#map.el[if $(@).hasClass('has-map') then 'show' else 'hide']().css('opacity', 1)
-console.log 'user', app.user
+						map_spacers.each (i, m) => $(m).css 'background-image', "url('//maps.googleapis.com/maps/api/staticmap?center=#{curlatlng.lat()},#{curlatlng.lng()}&zoom=#{$(m).attr('data-map-zoom') or 15}&size=#{$(window).width()}x#{@el.height()}&maptype=roadmap&format=png8&sensor=true&language=en')"
+						# get addr
+						map.geocoder.geocode latLng: curlatlng, (results, status) =>
+							if status is google.maps.GeocoderStatus.OK
+								callback.call @, curlatlng, results[0]?.formatted_address
+							else
+								alert "Geocoder failed due to: #{status}\n App terminated!"
+							# set center again
+							@setCenter curlatlng
+					else callback.call @, curlatlng
+				), (-> alert 'App cannot run without geo location!') if navigator.geolocation?
+				@ # end of get cur pos
+	).call map # end of ext map
+	# ========== sharing map binding ==========
+	$('[data-role="page"]').bind
+		pagebeforeshow: ->
+			map.el.addClass 'hidden'
+			# offline check
+			$(document.body)[if app.offline() then 'addClass' else 'removeClass'] 'offline'
+		pageshow: ->
+			$.mobile.fixedToolbars.show()
+			@hh = $('[data-role="header"]', @)?.outerHeight() or 0
+			@fh = $('[data-role="footer"]', @)?.outerHeight() or 0
+			@bh = document.body.clientHeight - @hh - @fh
+			$('.map', @).add(map.el).height @bh * if app.horizontal then 1 else 0.45
+			map.el.removeClass 'hidden' if $(@).hasClass('has-map')
+# init map if online
 
-# weather api
-$.ajax
-	url:'gapi?&hl=en-us&weather=san+jose,ca'
-	dataType: 'xml'
-	success: (xml, xhr) ->
-		j = xml2json(xml)
-		return if not j.weather?.current_conditions?
-		cur = j.weather.current_conditions
-		console.log 'w:', j
-		getIcon = (d) -> "https://www.google.com" + d.icon.data
-		el = $('#weather').html "<div id=\"weather_now\" class=\"weather\">
-<img src=\"#{getIcon cur}\"/>#{cur.condition.data}<br/>#{cur.temp_f.data}\u00b0F</div>" # \u00b0=°
-		el.append (j.weather.forecast_conditions.map (c) ->
-			"<div class=\"weather\"><img src=\"#{getIcon c}\"/>#{c.day_of_week.data} #{c.high.data}/#{c.low.data}\u00b0F</div>"
-		).join ''
+# ========== weather ==========
+app.sync_weather = ->
+	ref_w = (j) ->
+		if j.weather?.current_conditions?
+			cur = j.weather.current_conditions
+			console.log 'w:', j
+			getIcon = (d) -> "//www.google.com" + d.icon.data
+			el = $('#weather').html "<div id=\"weather_now\" class=\"weather\"><img src=\"#{getIcon cur}\"/>#{cur.condition.data}<br/>#{cur.temp_f.data}\u00b0F</div>" # \u00b0=°
+			el.append (j.weather.forecast_conditions.map (c) ->
+				"<div class=\"weather\"><img src=\"#{getIcon c}\"/>#{c.day_of_week.data} #{c.high.data}/#{c.low.data}\u00b0F</div>"
+			).join ''
+		else
+			$('#weather').html '(No Weather Data)'
 		@ # end
-	error: (xhr) -> console.log 'get weather failed', xhr
+	if not app.offline() then $.ajax
+		url:'gapi?&hl=en-us&weather=san+jose,ca'
+		dataType: 'xml'
+		success: (xml, xhr) ->
+			j = xml2json(xml)
+			localStorage.weather = JSON.stringify j
+			ref_w j
+		error: (xhr) -> console.log 'get weather failed', xhr
+	else if localStorage.weather?
+		ref_w JSON.parse localStorage.weather
+	else ref_w null
 
-# util js
+# ========== utils ==========
 `function xml2json(b,g,h){function j(b,g){if(!b)return null;var c="",a=null;if(b.childNodes&&0<b.childNodes.length)for(var i=0;i<b.childNodes.length;i++){var d=b.childNodes[i],f=d.nodeType,e=d.localName||d.nodeName||"",h=d.text||d.nodeValue||"";if(8!=f)if(3==f||4==f||!e)c+=h.replace(/^\s+|\s+$/g,"");else if(a=a||{},a[e]){if(!(a[e]instanceof Array)||!a[e].length)a[e]=[a[e]];a[e].push(j(d,!0))}else a[e]=j(d,!1)}if(b.attributes&&!k&&0<b.attributes.length){a=a||{};for(d=0;d<b.attributes.length;d++)e=b.attributes[d],f=e.name||"",e=e.value,a[f]?(!(a[f]instanceof Array)&&a[f].length&&(a[f]=[a[f]]),a[f].push(e)):a[f]=e}if(a){if(""!=c){d=new String(c);for(i in a)d[i]=a[i];a=d}if(c=a.text?("object"==typeof a.text?a.text:[a.text||""]).concat([c]):c)a.text=c;c=""}a=a||c;if(l){c&&(a={});if(c=a.text||c||"")a.text=c;!g&&!(a instanceof Array)&&(a=[a])}return a}var l=g,k=h;if(!b)return{};"string"==typeof b&&(b=q(b));if(b.nodeType){if(3==b.nodeType||4==b.nodeType)return b.nodeValue;b=9==b.nodeType?b.documentElement:b;g=j(b,!0);b=b=null;return g}}function q(b){var g;try{var h=new DOMParser;h.async=!1;g=h.parseFromString(b,"text/xml")}catch(j){throw Error("Error parsing XML string");}return g}`
 `function sha1(a){for(var d=[],b=0;b<8*a.length;b+=8)d[b>>5]|=(a.charCodeAt(b/8)&255)<<24-b%32;a=8*a.length;d[a>>5]|=128<<24-a%32;d[(a+64>>9<<4)+15]=a;for(var a=Array(80),b=1732584193,e=-271733879,f=-1732584194,g=271733878,i=-1009589776,j=0;j<d.length;j+=16){for(var k=b,l=e,m=f,n=g,o=i,c=0;80>c;c++){a[c]=16>c?d[j+c]:(a[c-3]^a[c-8]^a[c-14]^a[c-16])<<1|(a[c-3]^a[c-8]^a[c-14]^a[c-16])>>>31;var p=h(h(b<<5|b>>>27,20>c?e&f|~e&g:40>c?e^f^g:60>c?e&f|e&g|f&g:e^f^g),h(h(i,a[c]),20>c?1518500249:40>c?1859775393:60>c?-1894007588:-899497514)),i=g,g=f,f=e<<30|e>>>2,e=b,b=p}b=h(b,k);e=h(e,l);f=h(f,m);g=h(g,n);i=h(i,o)}d=[b,e,f,g,i];a="";for(b=0;b<4*d.length;b++)a+="0123456789abcdef".charAt(d[b>>2]>>8*(3-b%4)+4&15)+"0123456789abcdef".charAt(d[b>>2]>>8*(3-b%4)&15);return a};function h(a,d){var b=(a&65535)+(d&65535);return(a>>16)+(d>>16)+(b>>16)<<16|b&65535};`
 hash = (str1, str2) ->
 	h = 'KnightRider\x58\xb5\x04\x05\xf1\x50\x47\x6f\xf0\x40\xd8\xf4\xed\x9d\xd2\x79\xc0\x6e\xa6\xd9\xffKnightRider'
 	sha1(h + str1 + sha1(h + str1 + '\xff' + str2 + h) + str2 + h)
 
-# init web sql db
+#  ========== local db ==========
 if window.openDatabase?
 	app.db = openDatabase("KnightRider", "1.0", "Data cache for Knight Rider", 200000);
 	if app.db?
-		app.db._onerr = (e) -> console.error 'local db error', e
+		app.db._onerr = (t, e) -> console.error 'local db error', t, e
 		app.db.sync = (svc_name, callback) ->
 			svc svc_name,
 				method: 'sync'
@@ -210,73 +231,93 @@ if window.openDatabase?
 					last: date_svc.dateToStr new Date app.user?.last_sync_alert or 0
 				callback: (data) ->
 					console.log 'sync', svc_name, data
-					#app.user.last_sync_alert = new Date().getTime() - 10000 if app.user? # -10s
+					app.user.last_sync_alert = new Date().getTime() - 10000 if app.user? # -10s
 					callback? data
 			@ # end of sync
-		app.db.alerts_sync = ->
-			app.db.sync 'alerts', (data) ->
-				return if not data.length
-				app.db.transaction (tx) ->
-					ids = data.map (a) -> a.id
-					sql = "DELETE FROM [Alerts] WHERE id IN (#{ids.join(',')})" # delete old
-					tx.executeSql sql, [], ((tx) ->
-						data.forEach (a) ->
-							a.datetime = date_svc.dateFromWcf(a.datetime)
-							a.expired  = date_svc.dateFromWcf(a.expired)
-							a.created  = date_svc.dateFromWcf(a.created)
-							a.modified = date_svc.dateFromWcf(a.modified)
-							sql = "INSERT INTO [Alerts](id,summary,message,importance,type,status,datetime,expired,created,modified) VALUES (#{a.id},'#{a.summary}','#{a.message}',#{a.importance},#{a.type},#{a.status},'#{a.datetime}','#{a.expired}','#{a.created}','#{a.modified}')" # insert new
-							console.log 'insert', sql
-							tx.executeSql sql, [], ((tx, ret) -> 
-								# console.log ret
-							), app.db._onerr
-					), app.db._onerr
-		app.db.alerts_refresh = (callback) ->
-			app.db.transaction (tx) ->
-				tx.executeSql "SELECT * FROM [Alerts]", [], ((tx, ret) ->
-					console.log 'alerts from db', ret
+		app.db.alerts_sync = (callback) ->
+			load_alerts = (tx) ->
+				tx.executeSql "SELECT * FROM [Alerts] WHERE expired > strftime('%s','now') ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
+					console.log 'alerts count', ret.rows.length
 					rows = []
 					i = ret.rows.length
 					while i
-						rows.push ret.rows.item --i
+						row = $.extend {}, ret.rows.item --i
+						row.datetime = new Date row.datetime
+						row.expired = new Date row.expired
+						row.created = new Date row.created
+						row.modified = new Date row.modified
+						rows.unshift row
+					console.log 'alerts from db', rows, ret
 					callback? rows
 				), app.db._onerr
+			if app.offline()
+				app.db.transaction load_alerts
+			else app.db.sync 'alerts', (data) ->
+				app.db.transaction (tx) ->
+					if data.length
+						ids = data.map (a) -> a.id
+						vals = data.map (a) -> [
+							a.id
+							a.summary
+							a.message
+							date_svc.dateFromWcf(a.datetime).getTime()
+							date_svc.dateFromWcf(a.expired).getTime()
+							a.importance
+							a.type
+							a.status
+							date_svc.dateFromWcf(a.created).getTime()
+							date_svc.dateFromWcf(a.modified).getTime()
+						]
+						sql = "INSERT INTO [Alerts](id,summary,message,datetime,expired,importance,type,status,created,modified) VALUES (?,?,?,?,?,?,?,?,?,?);" # insert new rows
+						console.log 'db', sql, vals
+						tx.executeSql "DELETE FROM [Alerts] WHERE id IN (#{ids.join(',')})" # delete old
+						vals.forEach (val) -> tx.executeSql sql, val
+						# end of if length
+					load_alerts tx
+					@ # end of transaction
+				@ # end of sync
+			@ # end of alerts sync
 		# create table
 		app.db.transaction (tx) ->
 			tx.executeSql "CREATE TABLE IF NOT EXISTS [Alerts] (
 				id INT UNIQUE, 
 				summary NVARCHAR(100), 
 				message TEXT, 
-				datetime DATETIME, 
-				expired DATETIME, 
+				datetime LONG, 
+				expired LONG, 
 				importance TINYINT, 
 				type TINYINT, 
 				status TINYINT,
-				created DATETIME, 
-				modified DATETIME
-			)", [], app.db.alerts_sync, app.db._onerr
+				created LONG, 
+				modified LONG
+			)" # , [], app.db.alerts_sync, app.db._onerr
 	else alert 'open db err'
 
+# ========== pages ==========
 # home page
 $('#home').bind
 	pagecreate: -> @created = true
 	pagebeforeshow: ->
-		return if $('#map', @).length
 		console.log 'home pageshow'
 		created = @created
 		# init nav api and home page
-		map.getCurPos (curlatlng, addr) ->
-			$('#home_addr').text addr if addr? # set addr info
-			@setZoom 15
-			@setMarkers position: curlatlng # set cur marker
-		app.db.alerts_refresh (alerts) ->
+		if app.offline()
+			$('#home_addr').text 'You are offline now'
+		else if not window.offline_mode
+			map.getCurPos (curlatlng, addr) ->
+				$('#home_addr').text addr if addr? # set addr info
+				@setZoom 15
+				@setMarkers position: curlatlng # set cur marker
+		# sync weather
+		app.sync_weather()
+		# sync alerts
+		app.db.alerts_sync (alerts) ->
 			alert_el = $('#alerts').empty()
 			html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>'
 			html = "<li data-role=\"list-divider\" class=\"ui-body-c list-none\">#{alerts.length} Alerts</li>" + alerts.map((a) ->
-				"<li><a href=\"javascript:alert('#{a.message}')\">#{a.summary}</a></li>"
+				"<li><a href=\"javascript:alert('Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
 			).join '' if alerts.length > 0
 			$('#alerts').html(html).listview().listview 'refresh'
-			#@move 'home'
 		#@auto = setInterval (->
 		#	map.getCurPos (curlatlng, addr) -> $('#home_addr').text addr if addr? # set addr info
 		#), 30000 # every 30s
@@ -297,6 +338,8 @@ $('#login').bind
 			e.preventDefault()
 			e.stopPropagation()
 			#@fields.mobile 'disable'
+			return false if app.offline()
+			# start
 			inputs = $('input', @).textinput 'disable'
 			slider = $('select', @).slider 'disable'
 			btns = $('button', @).button 'disable'
@@ -306,8 +349,7 @@ $('#login').bind
 			return false if not email or not password
 			pk = hash email.toLowerCase(), password
 			app.autologin = $('#autologin').val() is 'on'
-			svc
-				svc: 'user'
+			svc 'user',
 				method: 'login'
 				data:
 					email: email
@@ -315,7 +357,7 @@ $('#login').bind
 				callback: (data) ->
 					console.log data
 					if data.uid and data.sid?.length is 32
-						app.user = uid: data.uid, email: email, sid: data.sid
+						app.user = uid: data.uid, email: email, sid: data.sid, psw: hash(sid + uid + pk)
 						$.mobile.changePage '#home', transition: 'flip'
 					else
 						alert 'Login Failed, please try again'
@@ -332,21 +374,29 @@ $('#login').bind
 		$('#password').val ''
 		$('#login_form_warp').show()
 		console.log 'logout', app.user
-		return if not app.user?
-		svc 'user',
-			method: 'logout'
-			nowait: true
-			data:
-				uid: app.user.uid
-				sid: app.user.sid
-		app.user = null
-		app.save_profile()
+		if navigator.onLine
+			$('button', @).button 'enable'
+			$('#btn_reg').removeClass 'ui-disabled'
+			return if not app.user?
+			svc 'user',
+				method: 'logout'
+				nowait: true
+				data:
+					uid: app.user.uid
+					sid: app.user.sid
+			app.user = null
+			app.save_profile()
+		else
+			$('button', @).button 'disable'
+			$('#btn_reg').addClass 'ui-disabled'
+			alert 'You are offline now!\nLogin need a network.' if app.offline()
 		@ # end of show
 
 # reg dlg
 $('#reg_form').submit (e) ->
 	e.preventDefault()
 	e.stopPropagation()
+	return false if app.offline()
 	if @password.value isnt @password2.value
 		alert 'Password does not match!'
 		@password2.focus()
@@ -381,7 +431,7 @@ $('#appointment').bind pagebeforeshow: ->
 	$.mobile.changePage '#login', (transition: 'flip', reverse: true) if not (app.user?.sid?.length is 32)
 	false
 $('#appt_form').submit (e) ->
-	return false if not (app.user?.sid?.length is 32) or (app.user?.uid is 0)
+	return false if not (app.user?.sid?.length is 32) or (app.user?.uid is 0) or app.offline()
 	e.preventDefault()
 	e.stopPropagation()
 	# validate hours
@@ -436,8 +486,8 @@ app.place_search_history_refresh = ->
 $('#custom_search').bind pagecreate: ->
 	@created = true
 	app.custom_search_history_refresh() # for the 1st show
-	new google.maps.places.Autocomplete $('#input_search')[0],
-		bounds: svbounds
+	if not app.offline() then new google.maps.places.Autocomplete $('#input_search')[0],
+		bounds: map.svbounds
 		types: ['establishment']
 $('#custom_search').bind 'pageshow pagebeforeshow', -> $('#custom_history_list').listview 'refresh' if @created
 $('#custom_search_form').submit ->
@@ -475,8 +525,8 @@ $('#result').bind
 			@setZoom 12
 			#@move 'result'
 			# search result
-			plcsvc.search
-				#bounds: svbounds
+			map.plcsvc.search
+				#bounds: map.svbounds
 				location: curlatlng
 				radius: 5000
 				keyword: app.search_keyword
@@ -503,19 +553,19 @@ $('#result').bind
 						result_list.append results.map((r, i) ->
 							r.seq = String.fromCharCode 65 + i # from A
 							"<li><a href=\"#detail\" data-btn-role=\"result\" id=\"#{r.id}\">
-<div style=\"float:left\">#{r.seq}</div><img src=\"#{r.icon?.replace /^http:/, 'https:'}\" class=\"ui-li-icon\">
+<div style=\"float:left\">#{r.seq}</div><img src=\"#{r.icon?.replace /^http:/, ''}\" class=\"ui-li-icon\">
 <h3 class=\"ui-li-heading\">#{r.name}</h3><p class=\"ui-li-desc\">#{r.vicinity}</p></li>"
 						).join ''
 						# show marking in rev order
 						markers = results.reverse().map (result) ->
 							position: result.geometry.location
-							icon: "https://www.google.com/mapfiles/marker#{result.seq}.png"
+							icon: "//www.google.com/mapfiles/marker#{result.seq}.png"
 							title: result.name
 						result_list.listview 'refresh'
 						# add marker
 						markers.push
 							position: curlatlng
-							icon: 'https://www.google.com/mapfiles/arrow.png'
+							icon: '//www.google.com/mapfiles/arrow.png'
 							title: 'You are here'
 						# set markers to map
 						map.setMarkers markers
@@ -579,13 +629,13 @@ $('#detail').bind
 					reference: app.selected_place.reference
 					name: place.name
 					vicinity: place.vicinity
-					icon: place.icon?.replace /^http:/, 'https:'
+					icon: place.icon?.replace /^http:/, ''
 				app.place_search_history_refresh()
 			console.log place
 			@ # end of show detail
 		if app.selected_place.__detail
 			show_detail app.selected_place.__detail
-		else plcsvc.getDetails (reference: app.selected_place.reference), (place, status) ->
+		else map.plcsvc.getDetails (reference: app.selected_place.reference), (place, status) ->
 			if status is google.maps.places.PlacesServiceStatus.OK
 				app.selected_place.__detail = place
 				show_detail place
@@ -599,7 +649,7 @@ $('#direction').bind
 		#curloc = -> map.getCurPos (curlatlng, addr) -> @setMarkers position: curlatlng if addr? # set cur marker
 		#@auto = setInterval curloc, 10000 # every 10s
 		map.getCurPos (curlatlng, addr) ->
-			dirSvc.route (
+			map.dirsvc.route (
 				origin: addr
 				destination: app.selected_place.vicinity # formatted_address
 				travelMode: google.maps.DirectionsTravelMode.DRIVING # or BICYCLING WALKING
@@ -608,13 +658,14 @@ $('#direction').bind
 			), (dirResult, dirStatus) ->
 				if dirStatus is google.maps.DirectionsStatus.OK
 					# Show directions
-					dirRenderer.setMap map
-					dirRenderer.setPanel direction_panel[0]
-					dirRenderer.setDirections(dirResult)
+					map.dirrdr.setMap map
+					map.dirrdr.setPanel direction_panel[0]
+					map.dirrdr.setDirections(dirResult)
 					# show self
 					#curloc()
 				else alert('Directions failed: ' + dirStatus)
 	pagehide: ->
 		#@auto = clearInterval @auto
-		dirRenderer.setMap null
-console.log 2 # jsmin app.js && rm app.js && mv app.min.js app.js
+		map.dirrdr.setMap null
+#  ========== end ==========
+console.log 3 # jsmin app.js && rm app.js && mv app.min.js app.js

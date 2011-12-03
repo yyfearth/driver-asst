@@ -1,39 +1,868 @@
-(function(){function D(a,b,c){function d(a,b){if(!a)return null;var c="",e=null;if(a.childNodes&&0<a.childNodes.length)for(var f=0;f<a.childNodes.length;f++){var k=a.childNodes[f],l=k.nodeType,g=k.localName||k.nodeName||"",j=k.text||k.nodeValue||"";if(8!=l)if(3==l||4==l||!g)c+=j.replace(/^\s+|\s+$/g,"");else if(e=e||{},e[g]){if(!(e[g]instanceof Array)||!e[g].length)e[g]=[e[g]];e[g].push(d(k,!0))}else e[g]=d(k,!1)}if(a.attributes&&!i&&0<a.attributes.length){e=e||{};for(k=0;k<a.attributes.length;k++)g=
-a.attributes[k],l=g.name||"",g=g.value,e[l]?(!(e[l]instanceof Array)&&e[l].length&&(e[l]=[e[l]]),e[l].push(g)):e[l]=g}if(e){if(""!=c){k=new String(c);for(f in e)k[f]=e[f];e=k}if(c=e.text?("object"==typeof e.text?e.text:[e.text||""]).concat([c]):c)e.text=c;c=""}e=e||c;if(h){c&&(e={});if(c=e.text||c||"")e.text=c;!b&&!(e instanceof Array)&&(e=[e])}return e}var h=b,i=c;if(!a)return{};"string"==typeof a&&(a=F(a));if(a.nodeType){if(3==a.nodeType||4==a.nodeType)return a.nodeValue;a=9==a.nodeType?a.documentElement:
-a;b=d(a,!0);a=a=null;return b}}function F(a){var b;try{var c=new DOMParser;c.async=!1;b=c.parseFromString(a,"text/xml")}catch(d){throw Error("Error parsing XML string");}return b}function u(a){for(var b=[],c=0;c<8*a.length;c+=8)b[c>>5]|=(a.charCodeAt(c/8)&255)<<24-c%32;a=8*a.length;b[a>>5]|=128<<24-a%32;b[(a+64>>9<<4)+15]=a;for(var a=Array(80),c=1732584193,d=-271733879,h=-1732584194,i=271733878,f=-1009589776,r=0;r<b.length;r+=16){for(var E=c,e=d,m=h,k=i,l=f,g=0;80>g;g++){a[g]=16>g?b[r+g]:(a[g-3]^
-a[g-8]^a[g-14]^a[g-16])<<1|(a[g-3]^a[g-8]^a[g-14]^a[g-16])>>>31;var n=j(j(c<<5|c>>>27,20>g?d&h|~d&i:40>g?d^h^i:60>g?d&h|d&i|h&i:d^h^i),j(j(f,a[g]),20>g?1518500249:40>g?1859775393:60>g?-1894007588:-899497514)),f=i,i=h,h=d<<30|d>>>2,d=c,c=n}c=j(c,E);d=j(d,e);h=j(h,m);i=j(i,k);f=j(f,l)}b=[c,d,h,i,f];a="";for(c=0;c<4*b.length;c++)a+="0123456789abcdef".charAt(b[c>>2]>>8*(3-c%4)+4&15)+"0123456789abcdef".charAt(b[c>>2]>>8*(3-c%4)&15);return a}function j(a,b){var c=(a&65535)+(b&65535);return(a>>16)+(b>>16)+
-(c>>16)<<16|c&65535}var o,m,p,v,w,s,f,x,t,y,z,n,A,B,C,q=function(a,b){return function(){return a.apply(b,arguments)}};window.app={back:function(){return history.go(-1)},autologin:"on"===$("#autologin").val()};n=function(a,b){if(null!=a.svc&&null==b)b=a,a=b.svc;else if("string"===typeof a)b.svc=a;b.type=null!=b.type&&/get/i.test(b.type)?"GET":"POST";if("POST"===b.type)b.data=JSON.stringify(b.data);b.nowait||$.mobile.showPageLoadingMsg();$.ajax({url:"svc/"+b.svc+".svc/"+b.method,type:b.type,dataType:"json",
-contentType:"application/json;charset=utf-8",data:b.data,processdata:"POST"!==b.type,complete:function(){if(!b.nowait)return $.mobile.hidePageLoadingMsg(),"function"===typeof b.complete?b.complete():void 0},success:function(a,d,h){if(!b.nowait){if(null!=a&&"d"in a)return"function"===typeof b.callback?b.callback(a.d):void 0;alert("Network Error");return console.log("err",h,h.statusText)}},error:function(a){alert("Network Error");return console.log("err",a,a.statusText)}});return!1};m={dateToWcf:function(a){var b;
-b=(new Date).getTimezoneOffset()/60;return"/Date("+ +(Date.parse(a)-36E5*b)+(0<b?"-":"+")+(9<b?"":"0")+b+"00)/"},dateFromWcf:function(a){a=a.match(/^\/Date\((\d+)([+-]\d{2})(\d{2})\)\/$/);return 4!==a.length?null:new Date(Number(a[1])-36E5*Number(a[2]))},dateToStr:function(a){a=new Date(a);return""+a.getFullYear()+"-"+(a.getMonth()+1)+"-"+a.getDate()+" "+a.getHours()+":"+a.getMinutes()+":"+a.getSeconds()},dateToUTC:function(a){a=new Date(a);return""+a.getUTCFullYear()+"-"+(a.getUTCMonth()+1)+"-"+
-a.getUTCDate()+"T"+a.getUTCHours()+":"+a.getUTCMinutes()+":"+a.getUTCSeconds()}};try{app.user=JSON.parse(sessionStorage.user||localStorage.user),0<(null!=(A=app.user)?A.uid:void 0)&&32===(null!=(B=app.user)?null!=(C=B.sid)?C.length:void 0:void 0)?(location.hash="#home",n("user",{method:"check",data:{uid:app.user.uid,sid:app.user.sid},callback:function(a){console.log("check",a);a||$.mobile.changePage("#login",{transition:"none"});return null}})):location.hash="#login"}catch(G){app.user=null,location.hash=
-"#login"}console.log("app.user",app.user);app.save_profile=window.onbeforeunload=function(){var a;if(null!=(a=app.user)&&a.uid){if(a=sessionStorage.user=JSON.stringify(app.user),app.autologin)localStorage.user=a}else localStorage.removeItem("user"),sessionStorage.removeItem("user")};$('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append($('[data-btn-role="back"],[data-btn-role="home"]'));$('#search [data-btn-role="home"]').hide();o=document.body;x=$(document.querySelectorAll('[data-role="map"]'));
-$(window).resize(function(){console.log("resize",o.clientWidth,o.clientHeight);app.horizontal=o.clientWidth>o.clientHeight;return $(o)[app.horizontal?"addClass":"removeClass"]("horizontal")});$(document.body).resize();$("#home").one({pageshow:function(){return f.el.offset($("#home_map").offset())}});f=app.map=new google.maps.Map($("#map")[0],{zoom:15,mapTypeId:google.maps.MapTypeId.ROADMAP,navigationControl:!0,navigationControlOptions:{style:google.maps.NavigationControlStyle.SMALL}});t=new google.maps.places.PlacesService(f);
-w=new google.maps.Geocoder;v=new google.maps.DirectionsService;p=new google.maps.DirectionsRenderer;z=new google.maps.LatLngBounds(new google.maps.LatLng(38.052417,-122.728271),new google.maps.LatLng(37.247821,-121.552734));(function(){this.el=$("#map");(new google.maps.TrafficLayer).setMap(this);return $.extend(this,{setMarkers:q(function(a){console.log("markers",a);a?$.isArray(a)||(a=[a]):a=null;null!=this.markers&&this.markers.forEach(function(a){return a.setMap(null)});this.markers=null!=a?a.map(function(a){a.map=
-f;return new google.maps.Marker(a)}):null;return this},this),getCurPos:q(function(a,b){null==b&&(b=a,a=!0);null!=navigator.geolocation&&navigator.geolocation.getCurrentPosition(q(function(c){var d;d=new google.maps.LatLng(c.coords.latitude,c.coords.longitude);console.log("curlatlng",d);if(!d.equals(this.getCenter()))d.changed=!0;return a&&d.changed?(this.setMarkers(null),this.setCenter(d),x.each(q(function(a,b){return $(b).css("background-image","url('https://maps.googleapis.com/maps/api/staticmap?center="+
-d.lat()+","+d.lng()+"&zoom="+($(b).attr("data-map-zoom")||15)+"&size="+$(window).width()+"x"+this.el.height()+"&maptype=roadmap&format=png8&sensor=true&language=en')")},this)),w.geocode({latLng:d},q(function(a,c){var f;c===google.maps.GeocoderStatus.OK?b.call(this,d,null!=(f=a[0])?f.formatted_address:void 0):alert("Geocoder failed due to: "+c+"\n App terminated!");return this.setCenter(d)},this))):b.call(this,d)},this),function(){return alert("App cannot run without geo location!")});return this},
-this)})}).call(f);$('[data-role="page"]').bind({pagebeforeshow:function(){return f.el.css({opacity:0,"z-index":0})},pageshow:function(){var a,b;$.mobile.fixedToolbars.show();this.hh=(null!=(a=$('[data-role="header"]',this))?a.outerHeight():void 0)||0;this.fh=(null!=(b=$('[data-role="footer"]',this))?b.outerHeight():void 0)||0;this.bh=document.body.clientHeight-this.hh-this.fh;$(".map",this).add(f.el).height(this.bh*(app.horizontal?1:0.45));if($(this).hasClass("has-map"))return f.el.css({opacity:1,
-"z-index":1E4})}});console.log("user",app.user);$.ajax({url:"gapi?&hl=en-us&weather=san+jose,ca",dataType:"xml",success:function(a){var b,c,a=D(a);if(null!=(null!=(b=a.weather)?b.current_conditions:void 0))return b=a.weather.current_conditions,console.log("w:",a),c=function(a){return"https://www.google.com"+a.icon.data},$("#weather").html('<div id="weather_now" class="weather"><img src="'+c(b)+'"/>'+b.condition.data+"<br/>"+b.temp_f.data+"\u00b0F</div>").append(a.weather.forecast_conditions.map(function(a){return'<div class="weather"><img src="'+
-c(a)+'"/>'+a.day_of_week.data+" "+a.high.data+"/"+a.low.data+"\u00b0F</div>"}).join("")),this},error:function(a){return console.log("get weather failed",a)}});s=function(a,b){return u("KnightRiderX\u00b5\u0004\u0005\u00f1PGo\u00f0@\u00d8\u00f4\u00ed\u009d\u00d2y\u00c0n\u00a6\u00d9\u00ffKnightRider"+a+u("KnightRiderX\u00b5\u0004\u0005\u00f1PGo\u00f0@\u00d8\u00f4\u00ed\u009d\u00d2y\u00c0n\u00a6\u00d9\u00ffKnightRider"+a+"\u00ff"+b+"KnightRiderX\u00b5\u0004\u0005\u00f1PGo\u00f0@\u00d8\u00f4\u00ed\u009d\u00d2y\u00c0n\u00a6\u00d9\u00ffKnightRider")+
-b+"KnightRiderX\u00b5\u0004\u0005\u00f1PGo\u00f0@\u00d8\u00f4\u00ed\u009d\u00d2y\u00c0n\u00a6\u00d9\u00ffKnightRider")};if(null!=window.openDatabase)app.db=openDatabase("KnightRider","1.0","Data cache for Knight Rider",2E5),null!=app.db?(app.db._onerr=function(a){return console.error("local db error",a)},app.db.sync=function(a,b){var c;n(a,{method:"sync",type:"get",data:{last:m.dateToStr(new Date((null!=(c=app.user)?c.last_sync_alert:void 0)||0))},callback:function(c){console.log("sync",a,c);return"function"===
-typeof b?b(c):void 0}});return this},app.db.alerts_sync=function(){return app.db.sync("alerts",function(a){return!a.length?void 0:app.db.transaction(function(b){var c;c="DELETE FROM [Alerts] WHERE id IN ("+a.map(function(a){return a.id}).join(",")+")";return b.executeSql(c,[],function(b){return a.forEach(function(a){a.datetime=m.dateFromWcf(a.datetime);a.expired=m.dateFromWcf(a.expired);a.created=m.dateFromWcf(a.created);a.modified=m.dateFromWcf(a.modified);c="INSERT INTO [Alerts](id,summary,message,importance,type,status,datetime,expired,created,modified) VALUES ("+
-a.id+",'"+a.summary+"','"+a.message+"',"+a.importance+","+a.type+","+a.status+",'"+a.datetime+"','"+a.expired+"','"+a.created+"','"+a.modified+"')";console.log("insert",c);return b.executeSql(c,[],function(){},app.db._onerr)})},app.db._onerr)})})},app.db.alerts_refresh=function(a){return app.db.transaction(function(b){return b.executeSql("SELECT * FROM [Alerts]",[],function(c,b){var h,f;console.log("alerts from db",b);f=[];for(h=b.rows.length;h;)f.push(b.rows.item(--h));return"function"===typeof a?
-a(f):void 0},app.db._onerr)})},app.db.transaction(function(a){return a.executeSql("CREATE TABLE IF NOT EXISTS [Alerts] (\t\t\t\tid INT UNIQUE, \t\t\t\tsummary NVARCHAR(100), \t\t\t\tmessage TEXT, \t\t\t\tdatetime DATETIME, \t\t\t\texpired DATETIME, \t\t\t\timportance TINYINT, \t\t\t\ttype TINYINT, \t\t\t\tstatus TINYINT,\t\t\t\tcreated DATETIME, \t\t\t\tmodified DATETIME\t\t\t)",[],app.db.alerts_sync,app.db._onerr)})):alert("open db err");$("#home").bind({pagecreate:function(){return this.created=
-!0},pagebeforeshow:function(){if(!$("#map",this).length)return console.log("home pageshow"),f.getCurPos(function(a,b){null!=b&&$("#home_addr").text(b);this.setZoom(15);return this.setMarkers({position:a})}),app.db.alerts_refresh(function(a){var b;$("#alerts").empty();b='<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>';0<a.length&&(b='<li data-role="list-divider" class="ui-body-c list-none">'+a.length+" Alerts</li>"+a.map(function(a){return"<li><a href=\"javascript:alert('"+
-a.message+"')\">"+a.summary+"</a></li>"}).join(""));return $("#alerts").html(b).listview().listview("refresh")}),this},pageshow:function(){var a;a=$("#alerts");return a.height(document.body.clientHeight-a.offset().top-this.fh)}});$("#login").bind({pagecreate:function(){$("#login_form").submit(function(a){var b,c,d,h;a.preventDefault();a.stopPropagation();d=$("input",this).textinput("disable");h=$("select",this).slider("disable");b=$("button",this).button("disable");$("#btn_reg").addClass("ui-disabled");
-c=$("#email").val().trim();a=$("#password").val();if(!c||!a)return!1;a=s(c.toLowerCase(),a);app.autologin="on"===$("#autologin").val();n({svc:"user",method:"login",data:{email:c,password:a},callback:function(a){var b;console.log(a);return a.uid&&32===(null!=(b=a.sid)?b.length:void 0)?(app.user={uid:a.uid,email:c,sid:a.sid},$.mobile.changePage("#home",{transition:"flip"})):alert("Login Failed, please try again")},complete:function(){b.button("enable");d.textinput("enable");h.slider("enable");return $("#btn_reg").removeClass("ui-disabled")}});
-return!1});return this},pagebeforehide:function(){return $("#login_form_warp").hide()},pagebeforeshow:function(){return $("#login_form_warp").hide()},pageshow:function(){$("#password").val("");$("#login_form_warp").show();console.log("logout",app.user);if(null!=app.user)return n("user",{method:"logout",nowait:!0,data:{uid:app.user.uid,sid:app.user.sid}}),app.user=null,app.save_profile(),this}});$("#reg_form").submit(function(a){var b,c;a.preventDefault();a.stopPropagation();if(this.password.value!==
-this.password2.value)return alert("Password does not match!"),this.password2.focus(),!1;a=this.email.value.trim();b=this.password.value;b=s(a.toLowerCase(),b);c={email:a,password:b,fullname:{first:this.first.value.trim(),last:this.last.value.trim()},phone:this.phone.value.trim()};console.log("reg",c);n("user",{method:"reg",data:{user:c},callback:function(a){console.log("new id:",a);if(1>a)return alert("Email already exists!");$("#email").val(c.email);$("#reg").dialog("close");return alert("Registration successful!")}});
-return!1});$("#appointment").bind({pagebeforeshow:function(){var a,b;$("#datetime").val(Date((new Date).getTime()+36E5).toLocaleString());32!==(null!=(a=app.user)?null!=(b=a.sid)?b.length:void 0:void 0)&&$.mobile.changePage("#login",{transition:"flip",reverse:!0});return!1}});$("#appt_form").submit(function(a){var b,c,d;if(32!==(null!=(b=app.user)?null!=(c=b.sid)?c.length:void 0:void 0)||0===(null!=(d=app.user)?d.uid:void 0))return!1;a.preventDefault();a.stopPropagation();a={user:app.user.uid,place:app.selected_place.id,
-contact:{name:this.name.value,phone:this.phone.value},datetime:m.dateToWcf(this.datetime.value),message:this.comments.value};console.log("appt",a);n("appointment",{method:"add",data:{appt:a,sid:app.user.sid},callback:function(a){console.log("appt success:",a);return a?($("#appointment").dialog("close"),alert("Appointment sent successful!")):$.mobile.changePage("#login",{transition:"flip",reverse:!0})}});return!1});$('[data-btn-role="search"]').live({vclick:function(){app.search_keyword=$(this).text();
-console.log("vclick",app.search_keyword);return this}});app.custom_search_history_refresh=function(){var a,b;$("#custom_history_list li:gt(0)").remove();a='<li data-role="list-divider" class="ui-body-c list-none">(None)</li>';if(null!=(b=app.user.custom_search_history)&&b.length)a=app.user.custom_search_history.map(function(a){return'<li><a href="#result" data-btn-role="search">'+a+"</a></li>"}).join("");return $("#custom_history_list_header").after(a)};app.place_search_history_refresh=function(){var a,
-b;$("#search_history_list li:gt(0)").remove();a='<li data-role="list-divider" class="ui-body-c list-none">(None)</li>';if(null!=(b=app.user.place_search_history)&&b.length)a=app.user.place_search_history.map(function(a,b){return'<li><a href="#detail" data-btn-role="result" data-index="'+b+'"><img src="'+a.icon+'" class="ui-li-icon"><h3 class="ui-li-heading">'+a.name+'</h3><p class="ui-li-desc">'+a.vicinity+"</p></li>"}).join("");return $("#search_history_list_header").after(a)};$("#custom_search").bind({pagecreate:function(){this.created=
-!0;app.custom_search_history_refresh();return new google.maps.places.Autocomplete($("#input_search")[0],{bounds:z,types:["establishment"]})}});$("#custom_search").bind("pageshow pagebeforeshow",function(){if(this.created)return $("#custom_history_list").listview("refresh")});$("#custom_search_form").submit(function(){var a,b;a=$("#input_search");(b=$.trim(a.val()))?(app.search_keyword=new String(b),app.search_keyword.custom=!0,$.mobile.changePage("#result"),console.log("vclick",app.search_keyword)):
-a.focus().val("");return!1});$("#search_history").bind({pagecreate:function(){this.created=!0;app.place_search_history_refresh();return $("#search_history li a").live({vclick:function(){return app.selected_place=app.user.place_search_history[Number($(this).attr("data-index"))]}})}});$("#search_history").bind("pageshow pagebeforeshow",function(){if(this.created)return $("#search_history_list").listview("refresh")});$("#result").bind({pagebeforeshow:function(){var a;console.log("search for",app.search_keyword);
-if(app.search_keyword)return $.mobile.showPageLoadingMsg(),a=$("#result_list").empty(),f.getCurPos(function(b){this.setZoom(12);return t.search({location:b,radius:5E3,keyword:app.search_keyword},function(c,d){var h,i,j;if(d===google.maps.places.PlacesServiceStatus.ZERO_RESULTS)alert("Zero Result"),app.back();else if(d===google.maps.places.PlacesServiceStatus.OK){if($("#result_addr").text(""+app.search_keyword+" ("+c.length+")"),a.height(document.body.clientHeight-a.offset().top),console.log("search result",
-c),app.result_map={},c.forEach(function(a){var c,d;app.result_map[a.id]=a;a=a.geometry;d=a.location.lng()-b.lng();c=a.location.lat()-b.lat();return a.dist=Math.pow(d,2)+Math.pow(c,2)}),c.sort(function(a,b){return a.geometry.dist-b.geometry.dist}),c=c.slice(0,25),a.append(c.map(function(a,b){var c;a.seq=String.fromCharCode(65+b);return'<li><a href="#detail" data-btn-role="result" id="'+a.id+'"><div style="float:left">'+a.seq+'</div><img src="'+(null!=(c=a.icon)?c.replace(/^http:/,"https:"):void 0)+
-'" class="ui-li-icon"><h3 class="ui-li-heading">'+a.name+'</h3><p class="ui-li-desc">'+a.vicinity+"</p></li>"}).join("")),h=c.reverse().map(function(a){return{position:a.geometry.location,icon:"https://www.google.com/mapfiles/marker"+a.seq+".png",title:a.name}}),a.listview("refresh"),h.push({position:b,icon:"https://www.google.com/mapfiles/arrow.png",title:"You are here"}),f.setMarkers(h),app.search_keyword.custom&&(h=null!=(j=(i=app.user).custom_search_history)?j:i.custom_search_history=[],0===h.length||
-h[0]!==app.search_keyword))h.unshift(app.search_keyword),app.custom_search_history_refresh()}else alert("Search Error");return this})}),this;app.back()}});y=function(a){var b,c,a=Number(a);c=a.toFixed(1);b=a|0;0<b&&(c+=" "+Array(b+1).join('<img src="res/star.png"/>'));0.4<a-b&&(c+='<img src="res/halfstar.png"/>');return c};$("#result_list a").live({vclick:function(){console.log(this.id);return app.selected_place=app.result_map[this.id]}});$("#detail").bind({pagecreate:function(){return $("#apt_cancel").bind({vclick:function(a){a.preventDefault();
-a.stopPropagation();$("#appointment").dialog("close");return!1}})},pageshow:function(){var a,b;a=$("#detial_info");a.height(document.body.clientHeight-a.offset().top-this.fh);console.log("detailof",app.selected_place);window.scrollTop=0;if(app.selected_place)return b=function(b){var d,h,i,j;f.setCenter(b.geometry.location);f.setMarkers({position:b.geometry.location});f.setZoom(15);$("#detail_place").text(b.name);a.html("<ul><li>"+b.formatted_address+"</li><li>"+b.formatted_phone_number+"</li><li>"+
-b.types.join(", ").replace(/_/g," ").toUpperCase()+"</li><li>"+(null!=b.rating?y(b.rating):"(No Rating Data)")+'</li><li><a href="'+(b.website||b.url)+'" target="_blank">'+(null!=b.website?"Visit its Website":"View on Google Place")+"</a></li></ul>");d=null!=(i=(h=app.user).place_search_history)?i:h.place_search_history=[];if(0===d.length||d[0].id!==app.selected_place.id)d.some(function(a,b){return a.id===app.selected_place.id?(d.splice(b,1),!0):!1}),d.unshift({id:b.id,reference:app.selected_place.reference,
-name:b.name,vicinity:b.vicinity,icon:null!=(j=b.icon)?j.replace(/^http:/,"https:"):void 0}),app.place_search_history_refresh();console.log(b);return this},app.selected_place.__detail?b(app.selected_place.__detail):t.getDetails({reference:app.selected_place.reference},function(a,d){if(d===google.maps.places.PlacesServiceStatus.OK)return app.selected_place.__detail=a,b(a)}),this;app.back()}});$("#direction").bind({pagebeforeshow:function(){var a;a=$("#direction_panel");a.height(document.body.clientHeight-
-a.offset().top);return f.getCurPos(function(b,c){return v.route({origin:c,destination:app.selected_place.vicinity,travelMode:google.maps.DirectionsTravelMode.DRIVING,unitSystem:google.maps.DirectionsUnitSystem.IMPERIAL,provideRouteAlternatives:!0},function(b,c){return c===google.maps.DirectionsStatus.OK?(p.setMap(f),p.setPanel(a[0]),p.setDirections(b)):alert("Directions failed: "+c)})})},pagehide:function(){return p.setMap(null)}});console.log(2)}).call(this);
+(function() {
+  var b, date_svc, hash, map, map_spacers, proc_rating, svc, _ref, _ref2, _ref3;
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  window.offline_mode = !navigator.onLine;
+  window.app = {
+    back: function() {
+      return history.go(-1);
+    },
+    autologin: $('#autologin').val() === 'on',
+    offline: function() {
+      console.log('offline', !navigator.onLine, 'offlinemode', window.offline_mode);
+      if (navigator.onLine && window.offline_mode) {
+        alert('You are online now, App will reload and enable online features!');
+        location.reload();
+        return;
+      }
+      return !navigator.onLine;
+    }
+  };
+  if (app.offline()) {
+    $(document.body).addClass('offline');
+  }
+  svc = function(svc, cfg) {
+    if ((svc.svc != null) && !(cfg != null)) {
+      cfg = svc;
+      svc = cfg.svc;
+    } else if (typeof svc === 'string') {
+      cfg.svc = svc;
+    }
+    cfg.type = (cfg.type != null) && /get/i.test(cfg.type) ? 'GET' : 'POST';
+    if (cfg.type === 'POST') {
+      cfg.data = JSON.stringify(cfg.data);
+    }
+    if (!cfg.nowait) {
+      $.mobile.showPageLoadingMsg();
+    }
+    $.ajax({
+      url: "svc/" + cfg.svc + ".svc/" + cfg.method,
+      type: cfg.type,
+      dataType: 'json',
+      contentType: 'application/json;charset=utf-8',
+      data: cfg.data,
+      processdata: cfg.type !== 'POST',
+      complete: function(xhr) {
+        if (cfg.nowait) {
+          return;
+        }
+        $.mobile.hidePageLoadingMsg();
+        return typeof cfg.complete === "function" ? cfg.complete() : void 0;
+      },
+      success: function(data, txt, xhr) {
+        if (cfg.nowait) {
+          return;
+        }
+        if ((data != null) && 'd' in data) {
+          return typeof cfg.callback === "function" ? cfg.callback(data.d) : void 0;
+        } else {
+          alert('Network Error');
+          return console.log('err', xhr, xhr.statusText);
+        }
+      },
+      error: function(xhr) {
+        alert('Network Error');
+        return console.log('err', xhr, xhr.statusText);
+      }
+    });
+    return false;
+  };
+  date_svc = {
+    dateToWcf: function(dt) {
+      var o;
+      o = new Date().getTimezoneOffset() / 60;
+      return "\/Date(" + (+(Date.parse(dt) - o * 3600000)) + (o > 0 ? '-' : '+') + (o > 9 ? '' : '0') + o + "00)\/";
+    },
+    dateFromWcf: function(str) {
+      var h, m, ts;
+      m = str.match(/^\/Date\((\d+)([+-]\d{2})(\d{2})\)\/$/);
+      if (m.length !== 4) {
+        return null;
+      }
+      ts = Number(m[1]);
+      h = Number(m[2]);
+      return new Date(ts - h * 3600000);
+    },
+    dateToStr: function(dt) {
+      dt = new Date(dt);
+      return "" + (dt.getFullYear()) + "-" + (dt.getMonth() + 1) + "-" + (dt.getDate()) + " " + (dt.getHours()) + ":" + (dt.getMinutes()) + ":" + (dt.getSeconds());
+    },
+    dateToUTC: function(dt) {
+      dt = new Date(dt);
+      return "" + (dt.getUTCFullYear()) + "-" + (dt.getUTCMonth() + 1) + "-" + (dt.getUTCDate()) + "T" + (dt.getUTCHours()) + ":" + (dt.getUTCMinutes()) + ":" + (dt.getUTCSeconds());
+    }
+  };
+  try {
+    app.user = JSON.parse(sessionStorage.user || localStorage.user);
+    if (((_ref = app.user) != null ? _ref.uid : void 0) > 0 && ((_ref2 = app.user) != null ? (_ref3 = _ref2.sid) != null ? _ref3.length : void 0 : void 0) === 32) {
+      location.hash = '#home';
+      svc('user', {
+        method: 'check',
+        data: {
+          uid: app.user.uid,
+          sid: app.user.sid
+        },
+        callback: function(ok) {
+          console.log('check', ok);
+          if (!ok) {
+            $.mobile.changePage('#login', {
+              transition: 'none'
+            });
+          }
+          return null;
+        }
+      });
+    } else {
+      location.hash = '#login';
+    }
+  } catch (e) {
+    app.user = null;
+    location.hash = '#login';
+  }
+  console.log('app.user', app.user);
+  app.save_profile = window.onbeforeunload = function() {
+    var p, _ref4;
+    if ((_ref4 = app.user) != null ? _ref4.uid : void 0) {
+      p = sessionStorage.user = JSON.stringify(app.user);
+      if (app.autologin) {
+        localStorage.user = p;
+      }
+    } else {
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+    }
+  };
+  $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append($('[data-btn-role="back"],[data-btn-role="home"]'));
+  $('#search [data-btn-role="home"]').hide();
+  b = document.body;
+  map_spacers = $(document.querySelectorAll('[data-role="map"]'));
+  $(window).resize(function() {
+    console.log('resize', b.clientWidth, b.clientHeight);
+    app.horizontal = b.clientWidth > b.clientHeight;
+    return $(b)[app.horizontal ? 'addClass' : 'removeClass']('horizontal');
+  });
+  $(document.body).resize();
+  map = app.map = null;
+  if (!app.offline()) {
+    $('#home').one({
+      pageshow: function() {
+        return map.el.offset($('#home_map').offset());
+      }
+    });
+    map = app.map = new google.maps.Map($('#map')[0], {
+      zoom: 15,
+      mapTypeId: google.maps.MapTypeId.ROADMAP,
+      navigationControl: true,
+      navigationControlOptions: {
+        style: google.maps.NavigationControlStyle.SMALL
+      }
+    });
+    map.plcsvc = new google.maps.places.PlacesService(map);
+    map.geocoder = new google.maps.Geocoder();
+    map.dirsvc = new google.maps.DirectionsService();
+    map.dirrdr = new google.maps.DirectionsRenderer();
+    map.svbounds = new google.maps.LatLngBounds(new google.maps.LatLng(38.052417, -122.728271), new google.maps.LatLng(37.247821, -121.552734));
+    (function() {
+      var trafficLayer;
+      this.el = $('#map');
+      trafficLayer = new google.maps.TrafficLayer();
+      trafficLayer.setMap(this);
+      return $.extend(this, {
+        setMarkers: __bind(function(markers_cfg) {
+          console.log('markers', markers_cfg);
+          if (!markers_cfg) {
+            markers_cfg = null;
+          } else if (!$.isArray(markers_cfg)) {
+            markers_cfg = [markers_cfg];
+          }
+          if (this.markers != null) {
+            this.markers.forEach((function(marker) {
+              return marker.setMap(null);
+            }));
+          }
+          if (markers_cfg != null) {
+            this.markers = markers_cfg.map(function(cfg) {
+              cfg.map = map;
+              return new google.maps.Marker(cfg);
+            });
+          } else {
+            this.markers = null;
+          }
+          return this;
+        }, this),
+        getCurPos: __bind(function(auto, callback) {
+          if (!(callback != null)) {
+            callback = auto;
+            auto = true;
+          }
+          if (app.offline()) {
+            callback.call(this, null, null);
+          } else {
+            if (navigator.geolocation != null) {
+              navigator.geolocation.getCurrentPosition((__bind(function(pos) {
+                var curlatlng;
+                curlatlng = new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+                console.log('curlatlng', curlatlng);
+                if (!curlatlng.equals(this.getCenter())) {
+                  curlatlng.changed = true;
+                }
+                if (auto && curlatlng.changed) {
+                  this.setMarkers(null);
+                  this.setCenter(curlatlng);
+                  map_spacers.each(__bind(function(i, m) {
+                    return $(m).css('background-image', "url('//maps.googleapis.com/maps/api/staticmap?center=" + (curlatlng.lat()) + "," + (curlatlng.lng()) + "&zoom=" + ($(m).attr('data-map-zoom') || 15) + "&size=" + ($(window).width()) + "x" + (this.el.height()) + "&maptype=roadmap&format=png8&sensor=true&language=en')");
+                  }, this));
+                  return map.geocoder.geocode({
+                    latLng: curlatlng
+                  }, __bind(function(results, status) {
+                    var _ref4;
+                    if (status === google.maps.GeocoderStatus.OK) {
+                      callback.call(this, curlatlng, (_ref4 = results[0]) != null ? _ref4.formatted_address : void 0);
+                    } else {
+                      alert("Geocoder failed due to: " + status + "\n App terminated!");
+                    }
+                    return this.setCenter(curlatlng);
+                  }, this));
+                } else {
+                  return callback.call(this, curlatlng);
+                }
+              }, this)), (function() {
+                return alert('App cannot run without geo location!');
+              }));
+            }
+          }
+          return this;
+        }, this)
+      });
+    }).call(map);
+    $('[data-role="page"]').bind({
+      pagebeforeshow: function() {
+        map.el.addClass('hidden');
+        return $(document.body)[app.offline() ? 'addClass' : 'removeClass']('offline');
+      },
+      pageshow: function() {
+        var _ref4, _ref5;
+        $.mobile.fixedToolbars.show();
+        this.hh = ((_ref4 = $('[data-role="header"]', this)) != null ? _ref4.outerHeight() : void 0) || 0;
+        this.fh = ((_ref5 = $('[data-role="footer"]', this)) != null ? _ref5.outerHeight() : void 0) || 0;
+        this.bh = document.body.clientHeight - this.hh - this.fh;
+        $('.map', this).add(map.el).height(this.bh * (app.horizontal ? 1 : 0.45));
+        if ($(this).hasClass('has-map')) {
+          return map.el.removeClass('hidden');
+        }
+      }
+    });
+  }
+  app.sync_weather = function() {
+    var ref_w;
+    ref_w = function(j) {
+      var cur, el, getIcon, _ref4;
+      if (((_ref4 = j.weather) != null ? _ref4.current_conditions : void 0) != null) {
+        cur = j.weather.current_conditions;
+        console.log('w:', j);
+        getIcon = function(d) {
+          return "//www.google.com" + d.icon.data;
+        };
+        el = $('#weather').html("<div id=\"weather_now\" class=\"weather\"><img src=\"" + (getIcon(cur)) + "\"/>" + cur.condition.data + "<br/>" + cur.temp_f.data + "\u00b0F</div>");
+        el.append((j.weather.forecast_conditions.map(function(c) {
+          return "<div class=\"weather\"><img src=\"" + (getIcon(c)) + "\"/>" + c.day_of_week.data + " " + c.high.data + "/" + c.low.data + "\u00b0F</div>";
+        })).join(''));
+      } else {
+        $('#weather').html('(No Weather Data)');
+      }
+      return this;
+    };
+    if (!app.offline()) {
+      return $.ajax({
+        url: 'gapi?&hl=en-us&weather=san+jose,ca',
+        dataType: 'xml',
+        success: function(xml, xhr) {
+          var j;
+          j = xml2json(xml);
+          localStorage.weather = JSON.stringify(j);
+          return ref_w(j);
+        },
+        error: function(xhr) {
+          return console.log('get weather failed', xhr);
+        }
+      });
+    } else if (localStorage.weather != null) {
+      return ref_w(JSON.parse(localStorage.weather));
+    } else {
+      return ref_w(null);
+    }
+  };
+  function xml2json(b,g,h){function j(b,g){if(!b)return null;var c="",a=null;if(b.childNodes&&0<b.childNodes.length)for(var i=0;i<b.childNodes.length;i++){var d=b.childNodes[i],f=d.nodeType,e=d.localName||d.nodeName||"",h=d.text||d.nodeValue||"";if(8!=f)if(3==f||4==f||!e)c+=h.replace(/^\s+|\s+$/g,"");else if(a=a||{},a[e]){if(!(a[e]instanceof Array)||!a[e].length)a[e]=[a[e]];a[e].push(j(d,!0))}else a[e]=j(d,!1)}if(b.attributes&&!k&&0<b.attributes.length){a=a||{};for(d=0;d<b.attributes.length;d++)e=b.attributes[d],f=e.name||"",e=e.value,a[f]?(!(a[f]instanceof Array)&&a[f].length&&(a[f]=[a[f]]),a[f].push(e)):a[f]=e}if(a){if(""!=c){d=new String(c);for(i in a)d[i]=a[i];a=d}if(c=a.text?("object"==typeof a.text?a.text:[a.text||""]).concat([c]):c)a.text=c;c=""}a=a||c;if(l){c&&(a={});if(c=a.text||c||"")a.text=c;!g&&!(a instanceof Array)&&(a=[a])}return a}var l=g,k=h;if(!b)return{};"string"==typeof b&&(b=q(b));if(b.nodeType){if(3==b.nodeType||4==b.nodeType)return b.nodeValue;b=9==b.nodeType?b.documentElement:b;g=j(b,!0);b=b=null;return g}}function q(b){var g;try{var h=new DOMParser;h.async=!1;g=h.parseFromString(b,"text/xml")}catch(j){throw Error("Error parsing XML string");}return g};
+  function sha1(a){for(var d=[],b=0;b<8*a.length;b+=8)d[b>>5]|=(a.charCodeAt(b/8)&255)<<24-b%32;a=8*a.length;d[a>>5]|=128<<24-a%32;d[(a+64>>9<<4)+15]=a;for(var a=Array(80),b=1732584193,e=-271733879,f=-1732584194,g=271733878,i=-1009589776,j=0;j<d.length;j+=16){for(var k=b,l=e,m=f,n=g,o=i,c=0;80>c;c++){a[c]=16>c?d[j+c]:(a[c-3]^a[c-8]^a[c-14]^a[c-16])<<1|(a[c-3]^a[c-8]^a[c-14]^a[c-16])>>>31;var p=h(h(b<<5|b>>>27,20>c?e&f|~e&g:40>c?e^f^g:60>c?e&f|e&g|f&g:e^f^g),h(h(i,a[c]),20>c?1518500249:40>c?1859775393:60>c?-1894007588:-899497514)),i=g,g=f,f=e<<30|e>>>2,e=b,b=p}b=h(b,k);e=h(e,l);f=h(f,m);g=h(g,n);i=h(i,o)}d=[b,e,f,g,i];a="";for(b=0;b<4*d.length;b++)a+="0123456789abcdef".charAt(d[b>>2]>>8*(3-b%4)+4&15)+"0123456789abcdef".charAt(d[b>>2]>>8*(3-b%4)&15);return a};function h(a,d){var b=(a&65535)+(d&65535);return(a>>16)+(d>>16)+(b>>16)<<16|b&65535};;
+  hash = function(str1, str2) {
+    var h;
+    h = 'KnightRider\x58\xb5\x04\x05\xf1\x50\x47\x6f\xf0\x40\xd8\xf4\xed\x9d\xd2\x79\xc0\x6e\xa6\xd9\xffKnightRider';
+    return sha1(h + str1 + sha1(h + str1 + '\xff' + str2 + h) + str2 + h);
+  };
+  if (window.openDatabase != null) {
+    app.db = openDatabase("KnightRider", "1.0", "Data cache for Knight Rider", 200000);
+    if (app.db != null) {
+      app.db._onerr = function(t, e) {
+        return console.error('local db error', t, e);
+      };
+      app.db.sync = function(svc_name, callback) {
+        var _ref4;
+        svc(svc_name, {
+          method: 'sync',
+          type: 'get',
+          data: {
+            last: date_svc.dateToStr(new Date(((_ref4 = app.user) != null ? _ref4.last_sync_alert : void 0) || 0))
+          },
+          callback: function(data) {
+            console.log('sync', svc_name, data);
+            if (app.user != null) {
+              app.user.last_sync_alert = new Date().getTime() - 10000;
+            }
+            return typeof callback === "function" ? callback(data) : void 0;
+          }
+        });
+        return this;
+      };
+      app.db.alerts_sync = function(callback) {
+        var load_alerts;
+        load_alerts = function(tx) {
+          return tx.executeSql("SELECT * FROM [Alerts] WHERE expired > strftime('%s','now') ORDER BY datetime DESC, importance DESC;", [], (function(tx, ret) {
+            var i, row, rows;
+            console.log('alerts count', ret.rows.length);
+            rows = [];
+            i = ret.rows.length;
+            while (i) {
+              row = $.extend({}, ret.rows.item(--i));
+              row.datetime = new Date(row.datetime);
+              row.expired = new Date(row.expired);
+              row.created = new Date(row.created);
+              row.modified = new Date(row.modified);
+              rows.unshift(row);
+            }
+            console.log('alerts from db', rows, ret);
+            return typeof callback === "function" ? callback(rows) : void 0;
+          }), app.db._onerr);
+        };
+        if (app.offline()) {
+          app.db.transaction(load_alerts);
+        } else {
+          app.db.sync('alerts', function(data) {
+            app.db.transaction(function(tx) {
+              var ids, sql, vals;
+              if (data.length) {
+                ids = data.map(function(a) {
+                  return a.id;
+                });
+                vals = data.map(function(a) {
+                  return [a.id, a.summary, a.message, date_svc.dateFromWcf(a.datetime).getTime(), date_svc.dateFromWcf(a.expired).getTime(), a.importance, a.type, a.status, date_svc.dateFromWcf(a.created).getTime(), date_svc.dateFromWcf(a.modified).getTime()];
+                });
+                sql = "INSERT INTO [Alerts](id,summary,message,datetime,expired,importance,type,status,created,modified) VALUES (?,?,?,?,?,?,?,?,?,?);";
+                console.log('db', sql, vals);
+                tx.executeSql("DELETE FROM [Alerts] WHERE id IN (" + (ids.join(',')) + ")");
+                vals.forEach(function(val) {
+                  return tx.executeSql(sql, val);
+                });
+              }
+              load_alerts(tx);
+              return this;
+            });
+            return this;
+          });
+        }
+        return this;
+      };
+      app.db.transaction(function(tx) {
+        return tx.executeSql("CREATE TABLE IF NOT EXISTS [Alerts] (				id INT UNIQUE, 				summary NVARCHAR(100), 				message TEXT, 				datetime LONG, 				expired LONG, 				importance TINYINT, 				type TINYINT, 				status TINYINT,				created LONG, 				modified LONG			)");
+      });
+    } else {
+      alert('open db err');
+    }
+  }
+  $('#home').bind({
+    pagecreate: function() {
+      return this.created = true;
+    },
+    pagebeforeshow: function() {
+      var created;
+      console.log('home pageshow');
+      created = this.created;
+      if (app.offline()) {
+        $('#home_addr').text('You are offline now');
+      } else if (!window.offline_mode) {
+        map.getCurPos(function(curlatlng, addr) {
+          if (addr != null) {
+            $('#home_addr').text(addr);
+          }
+          this.setZoom(15);
+          return this.setMarkers({
+            position: curlatlng
+          });
+        });
+      }
+      app.sync_weather();
+      app.db.alerts_sync(function(alerts) {
+        var alert_el, html;
+        alert_el = $('#alerts').empty();
+        html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>';
+        if (alerts.length > 0) {
+          html = ("<li data-role=\"list-divider\" class=\"ui-body-c list-none\">" + alerts.length + " Alerts</li>") + alerts.map(function(a) {
+            return "<li><a href=\"javascript:alert('Summary: " + a.summary + "\\nMessage: " + a.message + "\\nFrom: " + a.datetime + "\\nExpire: " + a.expired + "')\">" + a.summary + " (" + (a.datetime.toLocaleDateString()) + ")</a></li>";
+          }).join('');
+        }
+        return $('#alerts').html(html).listview().listview('refresh');
+      });
+      return this;
+    },
+    pageshow: function() {
+      var alert_el;
+      alert_el = $('#alerts');
+      return alert_el.height(document.body.clientHeight - alert_el.offset().top - this.fh);
+    }
+  });
+  $('#login').bind({
+    pagecreate: function() {
+      $('#login_form').submit(function(e) {
+        var btns, email, inputs, password, pk, slider;
+        e.preventDefault();
+        e.stopPropagation();
+        if (app.offline()) {
+          return false;
+        }
+        inputs = $('input', this).textinput('disable');
+        slider = $('select', this).slider('disable');
+        btns = $('button', this).button('disable');
+        $('#btn_reg').addClass('ui-disabled');
+        email = $('#email').val().trim();
+        password = $('#password').val();
+        if (!email || !password) {
+          return false;
+        }
+        pk = hash(email.toLowerCase(), password);
+        app.autologin = $('#autologin').val() === 'on';
+        svc('user', {
+          method: 'login',
+          data: {
+            email: email,
+            password: pk
+          },
+          callback: function(data) {
+            var _ref4;
+            console.log(data);
+            if (data.uid && ((_ref4 = data.sid) != null ? _ref4.length : void 0) === 32) {
+              app.user = {
+                uid: data.uid,
+                email: email,
+                sid: data.sid,
+                psw: hash(sid + uid + pk)
+              };
+              return $.mobile.changePage('#home', {
+                transition: 'flip'
+              });
+            } else {
+              return alert('Login Failed, please try again');
+            }
+          },
+          complete: function() {
+            btns.button('enable');
+            inputs.textinput('enable');
+            slider.slider('enable');
+            return $('#btn_reg').removeClass('ui-disabled');
+          }
+        });
+        return false;
+      });
+      return this;
+    },
+    pagebeforehide: function() {
+      return $('#login_form_warp').hide();
+    },
+    pagebeforeshow: function() {
+      return $('#login_form_warp').hide();
+    },
+    pageshow: function() {
+      $('#password').val('');
+      $('#login_form_warp').show();
+      console.log('logout', app.user);
+      if (navigator.onLine) {
+        $('button', this).button('enable');
+        $('#btn_reg').removeClass('ui-disabled');
+        if (!(app.user != null)) {
+          return;
+        }
+        svc('user', {
+          method: 'logout',
+          nowait: true,
+          data: {
+            uid: app.user.uid,
+            sid: app.user.sid
+          }
+        });
+        app.user = null;
+        app.save_profile();
+      } else {
+        $('button', this).button('disable');
+        $('#btn_reg').addClass('ui-disabled');
+        if (app.offline()) {
+          alert('You are offline now!\nLogin need a network.');
+        }
+      }
+      return this;
+    }
+  });
+  $('#reg_form').submit(function(e) {
+    var email, password, pk, u;
+    e.preventDefault();
+    e.stopPropagation();
+    if (app.offline()) {
+      return false;
+    }
+    if (this.password.value !== this.password2.value) {
+      alert('Password does not match!');
+      this.password2.focus();
+      return false;
+    }
+    email = this.email.value.trim();
+    password = this.password.value;
+    pk = hash(email.toLowerCase(), password);
+    u = {
+      email: email,
+      password: pk,
+      fullname: {
+        first: this.first.value.trim(),
+        last: this.last.value.trim()
+      },
+      phone: this.phone.value.trim()
+    };
+    console.log('reg', u);
+    svc('user', {
+      method: 'reg',
+      data: {
+        user: u
+      },
+      callback: function(uid) {
+        console.log('new id:', uid);
+        if (uid < 1) {
+          return alert('Email already exists!');
+        } else {
+          $('#email').val(u.email);
+          $('#reg').dialog('close');
+          return alert('Registration successful!');
+        }
+      }
+    });
+    return false;
+  });
+  $('#appointment').bind({
+    pagebeforeshow: function() {
+      var _ref4, _ref5;
+      $('#datetime').val(Date(new Date().getTime() + 60 * 60 * 1000).toLocaleString());
+      if (!(((_ref4 = app.user) != null ? (_ref5 = _ref4.sid) != null ? _ref5.length : void 0 : void 0) === 32)) {
+        $.mobile.changePage('#login', {
+          transition: 'flip',
+          reverse: true
+        });
+      }
+      return false;
+    }
+  });
+  $('#appt_form').submit(function(e) {
+    var appt, _ref4, _ref5, _ref6;
+    if (!(((_ref4 = app.user) != null ? (_ref5 = _ref4.sid) != null ? _ref5.length : void 0 : void 0) === 32) || (((_ref6 = app.user) != null ? _ref6.uid : void 0) === 0) || app.offline()) {
+      return false;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    appt = {
+      user: app.user.uid,
+      place: app.selected_place.id,
+      contact: {
+        name: this.name.value,
+        phone: this.phone.value
+      },
+      datetime: date_svc.dateToWcf(this.datetime.value),
+      message: this.comments.value
+    };
+    console.log('appt', appt);
+    svc('appointment', {
+      method: 'add',
+      data: {
+        appt: appt,
+        sid: app.user.sid
+      },
+      callback: function(success) {
+        console.log('appt success:', success);
+        if (!success) {
+          return $.mobile.changePage('#login', {
+            transition: 'flip',
+            reverse: true
+          });
+        } else {
+          $('#appointment').dialog('close');
+          return alert('Appointment sent successful!');
+        }
+      }
+    });
+    return false;
+  });
+  $('[data-btn-role="search"]').live({
+    vclick: function(e) {
+      app.search_keyword = $(this).text();
+      console.log('vclick', app.search_keyword);
+      return this;
+    }
+  });
+  app.custom_search_history_refresh = function() {
+    var l, _ref4;
+    $('#custom_history_list li:gt(0)').remove();
+    l = '<li data-role="list-divider" class="ui-body-c list-none">(None)</li>';
+    if ((_ref4 = app.user.custom_search_history) != null ? _ref4.length : void 0) {
+      l = app.user.custom_search_history.map(function(item) {
+        return "<li><a href=\"#result\" data-btn-role=\"search\">" + item + "</a></li>";
+      }).join('');
+    }
+    return $('#custom_history_list_header').after(l);
+  };
+  app.place_search_history_refresh = function() {
+    var l, _ref4;
+    $('#search_history_list li:gt(0)').remove();
+    l = '<li data-role="list-divider" class="ui-body-c list-none">(None)</li>';
+    if ((_ref4 = app.user.place_search_history) != null ? _ref4.length : void 0) {
+      l = app.user.place_search_history.map(function(r, i) {
+        return "<li><a href=\"#detail\" data-btn-role=\"result\" data-index=\"" + i + "\"><img src=\"" + r.icon + "\" class=\"ui-li-icon\"><h3 class=\"ui-li-heading\">" + r.name + "</h3><p class=\"ui-li-desc\">" + r.vicinity + "</p></li>";
+      }).join('');
+    }
+    return $('#search_history_list_header').after(l);
+  };
+  $('#custom_search').bind({
+    pagecreate: function() {
+      this.created = true;
+      app.custom_search_history_refresh();
+      if (!app.offline()) {
+        return new google.maps.places.Autocomplete($('#input_search')[0], {
+          bounds: map.svbounds,
+          types: ['establishment']
+        });
+      }
+    }
+  });
+  $('#custom_search').bind('pageshow pagebeforeshow', function() {
+    if (this.created) {
+      return $('#custom_history_list').listview('refresh');
+    }
+  });
+  $('#custom_search_form').submit(function() {
+    var input, keyword;
+    input = $('#input_search');
+    keyword = $.trim(input.val());
+    if (keyword) {
+      app.search_keyword = new String(keyword);
+      app.search_keyword.custom = true;
+      $.mobile.changePage('#result');
+      console.log('vclick', app.search_keyword);
+    } else {
+      input.focus().val('');
+    }
+    return false;
+  });
+  $('#search_history').bind({
+    pagecreate: function() {
+      this.created = true;
+      app.place_search_history_refresh();
+      return $('#search_history li a').live({
+        vclick: function() {
+          return app.selected_place = app.user.place_search_history[Number($(this).attr('data-index'))];
+        }
+      });
+    }
+  });
+  $('#search_history').bind('pageshow pagebeforeshow', function() {
+    if (this.created) {
+      return $('#search_history_list').listview('refresh');
+    }
+  });
+  $('#result').bind({
+    pagebeforeshow: function() {
+      var result_list;
+      console.log('search for', app.search_keyword);
+      if (!app.search_keyword) {
+        app.back();
+        return;
+      }
+      $.mobile.showPageLoadingMsg();
+      result_list = $('#result_list').empty();
+      map.getCurPos(function(curlatlng, addr) {
+        this.setZoom(12);
+        return map.plcsvc.search({
+          location: curlatlng,
+          radius: 5000,
+          keyword: app.search_keyword
+        }, function(results, status) {
+          var hs, markers, _base, _ref4;
+          if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+            alert('Zero Result');
+            app.back();
+          } else if (status === google.maps.places.PlacesServiceStatus.OK) {
+            $('#result_addr').text("" + app.search_keyword + " (" + results.length + ")");
+            result_list.height(document.body.clientHeight - result_list.offset().top);
+            console.log('search result', results);
+            app.result_map = {};
+            results.forEach(function(r) {
+              var dlat, dlng;
+              app.result_map[r.id] = r;
+              r = r.geometry;
+              dlng = r.location.lng() - curlatlng.lng();
+              dlat = r.location.lat() - curlatlng.lat();
+              return r.dist = Math.pow(dlng, 2) + Math.pow(dlat, 2);
+            });
+            results.sort(function(a, b) {
+              return a.geometry.dist - b.geometry.dist;
+            });
+            results = results.slice(0, 25);
+            result_list.append(results.map(function(r, i) {
+              var _ref4;
+              r.seq = String.fromCharCode(65 + i);
+              return "<li><a href=\"#detail\" data-btn-role=\"result\" id=\"" + r.id + "\"><div style=\"float:left\">" + r.seq + "</div><img src=\"" + ((_ref4 = r.icon) != null ? _ref4.replace(/^http:/, '') : void 0) + "\" class=\"ui-li-icon\"><h3 class=\"ui-li-heading\">" + r.name + "</h3><p class=\"ui-li-desc\">" + r.vicinity + "</p></li>";
+            }).join(''));
+            markers = results.reverse().map(function(result) {
+              return {
+                position: result.geometry.location,
+                icon: "//www.google.com/mapfiles/marker" + result.seq + ".png",
+                title: result.name
+              };
+            });
+            result_list.listview('refresh');
+            markers.push({
+              position: curlatlng,
+              icon: '//www.google.com/mapfiles/arrow.png',
+              title: 'You are here'
+            });
+            map.setMarkers(markers);
+            if (app.search_keyword.custom) {
+              hs = (_ref4 = (_base = app.user).custom_search_history) != null ? _ref4 : _base.custom_search_history = [];
+              if (hs.length === 0 || hs[0] !== app.search_keyword) {
+                hs.unshift(app.search_keyword);
+                app.custom_search_history_refresh();
+              }
+            }
+          } else {
+            alert('Search Error');
+          }
+          return this;
+        });
+      });
+      return this;
+    }
+  });
+  proc_rating = function(rating) {
+    var i, stars;
+    rating = Number(rating);
+    stars = rating.toFixed(1);
+    i = rating | 0;
+    if (i > 0) {
+      stars += ' ' + new Array(i + 1).join('<img src="res/star.png"/>');
+    }
+    if (rating - i > 0.4) {
+      stars += '<img src="res/halfstar.png"/>';
+    }
+    return stars;
+  };
+  $('#result_list a').live({
+    vclick: function() {
+      console.log(this.id);
+      return app.selected_place = app.result_map[this.id];
+    }
+  });
+  $('#detail').bind({
+    pagecreate: function() {
+      return $('#apt_cancel').bind({
+        vclick: function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          $('#appointment').dialog('close');
+          return false;
+        }
+      });
+    },
+    pageshow: function() {
+      var detial_info, show_detail;
+      detial_info = $('#detial_info');
+      detial_info.height(document.body.clientHeight - detial_info.offset().top - this.fh);
+      console.log('detailof', app.selected_place);
+      window.scrollTop = 0;
+      if (!app.selected_place) {
+        app.back();
+        return;
+      }
+      show_detail = function(place) {
+        var psh, _base, _ref4, _ref5;
+        map.setCenter(place.geometry.location);
+        map.setMarkers({
+          position: place.geometry.location
+        });
+        map.setZoom(15);
+        $('#detail_place').text(place.name);
+        detial_info.html("<ul><li>" + place.formatted_address + "</li><li>" + place.formatted_phone_number + "</li><li>" + (place.types.join(', ').replace(/_/g, ' ').toUpperCase()) + "</li><li>" + (place.rating != null ? proc_rating(place.rating) : '(No Rating Data)') + "</li><li><a href=\"" + (place.website || place.url) + "\" target=\"_blank\">" + (place.website != null ? 'Visit its Website' : 'View on Google Place') + "</a></li></ul>");
+        psh = (_ref4 = (_base = app.user).place_search_history) != null ? _ref4 : _base.place_search_history = [];
+        if (psh.length === 0 || psh[0].id !== app.selected_place.id) {
+          psh.some(function(h, i) {
+            if (h.id === app.selected_place.id) {
+              psh.splice(i, 1);
+              return true;
+            }
+            return false;
+          });
+          psh.unshift({
+            id: place.id,
+            reference: app.selected_place.reference,
+            name: place.name,
+            vicinity: place.vicinity,
+            icon: (_ref5 = place.icon) != null ? _ref5.replace(/^http:/, '') : void 0
+          });
+          app.place_search_history_refresh();
+        }
+        console.log(place);
+        return this;
+      };
+      if (app.selected_place.__detail) {
+        show_detail(app.selected_place.__detail);
+      } else {
+        map.plcsvc.getDetails({
+          reference: app.selected_place.reference
+        }, function(place, status) {
+          if (status === google.maps.places.PlacesServiceStatus.OK) {
+            app.selected_place.__detail = place;
+            return show_detail(place);
+          }
+        });
+      }
+      return this;
+    }
+  });
+  $('#direction').bind({
+    pagebeforeshow: function() {
+      var direction_panel;
+      direction_panel = $('#direction_panel');
+      direction_panel.height(document.body.clientHeight - direction_panel.offset().top);
+      return map.getCurPos(function(curlatlng, addr) {
+        return map.dirsvc.route({
+          origin: addr,
+          destination: app.selected_place.vicinity,
+          travelMode: google.maps.DirectionsTravelMode.DRIVING,
+          unitSystem: google.maps.DirectionsUnitSystem.IMPERIAL,
+          provideRouteAlternatives: true
+        }, function(dirResult, dirStatus) {
+          if (dirStatus === google.maps.DirectionsStatus.OK) {
+            map.dirrdr.setMap(map);
+            map.dirrdr.setPanel(direction_panel[0]);
+            return map.dirrdr.setDirections(dirResult);
+          } else {
+            return alert('Directions failed: ' + dirStatus);
+          }
+        });
+      });
+    },
+    pagehide: function() {
+      return map.dirrdr.setMap(null);
+    }
+  });
+  console.log(3);
+}).call(this);

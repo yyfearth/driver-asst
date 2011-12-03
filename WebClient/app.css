@@ -7,10 +7,6 @@
 .ui-li-icon {
 	position: static;
 }
-#map {
-	position: fixed;
-	z-index: 10000;
-}
 .map {
 	width: 100%;
 	min-height: 100px;
@@ -18,6 +14,18 @@
 	padding: 0;
 	background-position: center;
 	z-index: 1000;
+}
+.offline .map, .map.hidden {
+	display: none;
+}
+#map {
+	position: fixed;
+	opacity: 1;
+	z-index: 10000;
+}
+.offline #map, #map.hidden {
+	opacity: 0 !important;
+	z-index: 0 !important;
 }
 .horizontal .map, .horizontal #map {
 	float: left;
