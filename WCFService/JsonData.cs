@@ -102,8 +102,6 @@ namespace KnightRider {
 		public PlaceStatus status { get; set; }
 		[DataMember]
 		public string gid { get; set; } // id
-		[DataMember]
-		public string gref { get; set; } // original reference
 	}
 	// appointment
 	[DataContract]

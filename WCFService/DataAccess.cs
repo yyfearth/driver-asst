@@ -286,7 +286,6 @@ namespace KnightRider {
 					var p = new PlaceJson() {
 						id = Convert.ToUInt32(rdr["ID"]),
 						gid = (string)rdr["GID"],
-						gref = (string)rdr["GReference"],
 						gtypes = (string)rdr["GTypes"],
 						name = (string)rdr["Name"],
 						location = new PlaceJson.GeoLocation() {
@@ -318,7 +317,6 @@ namespace KnightRider {
 				sql = sql.Replace("@Rating", rating);
 				SqlCommand cmd = new SqlCommand(sql, cn);
 				cmd.Parameters.AddWithValue("GID", place.gid);
-				cmd.Parameters.AddWithValue("GReference", place.gref);
 				cmd.Parameters.AddWithValue("GTypes", place.gtypes);
 				cmd.Parameters.AddWithValue("Name", place.name);
 				cmd.Parameters.AddWithValue("Latitude", place.location.lat);

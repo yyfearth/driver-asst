@@ -23,8 +23,9 @@ svc = (svc, cfg) ->
 		cfg.svc = svc
 	cfg.type = if cfg.type? and /get/i.test(cfg.type) then 'GET' else 'POST'
 	cfg.data = JSON.stringify cfg.data if cfg.type is 'POST'
+	cfg.background = true if cfg.nowait
 	# start
-	$.mobile.showPageLoadingMsg() if cfg.background or not cfg.nowait
+	$.mobile.showPageLoadingMsg() if not cfg.background
 	$.ajax
 		url: "svc/#{cfg.svc}.svc/#{cfg.method}"
 		type: cfg.type
@@ -32,12 +33,10 @@ svc = (svc, cfg) ->
 		contentType: 'application/json;charset=utf-8'
 		data: cfg.data
 		processdata: cfg.type isnt 'POST'
-		complete: (xhr) ->
-			return if cfg.nowait
+		complete: if cfg.background then null else (xhr) ->
 			$.mobile.hidePageLoadingMsg()
 			cfg.complete?()
-		success: (data, txt, xhr) ->
-			return if cfg.nowait
+		success: if cfg.nowait then null else (data, txt, xhr) ->
 			if data? and 'd' of data
 				cfg.callback? data.d
 			else
@@ -48,6 +47,7 @@ svc = (svc, cfg) ->
 			console.log 'err', xhr, xhr.statusText
 	return false;
 date_svc =
+	fmt: (d) -> if d > 9 then d.toString() else '0' + d
 	dateToWcf: (dt) ->
 		o = new Date().getTimezoneOffset() / 60
 		return "\/Date(#{ + (Date.parse(dt) - o * 3600000)}#{if o > 0 then '-' else '+'}#{if o>9 then '' else '0'}#{o}00)\/"
@@ -59,12 +59,12 @@ date_svc =
 		new Date(ts - h * 3600000)
 	dateToStr: (dt) ->
 		dt = new Date(dt)
-		"#{dt.getFullYear()}-#{dt.getMonth() + 1}-#{dt.getDate()} #{dt.getHours()}:#{dt.getMinutes()}:#{dt.getSeconds()}"
+		"#{dt.getFullYear()}-#{@fmt(dt.getMonth()+1)}-#{@fmt dt.getDate()} #{@fmt dt.getHours()}:#{@fmt dt.getMinutes()}:#{@fmt dt.getSeconds()}"
 	dateFromWcfToStr: (str) ->
 		@dateToStr @dateFromWcf str
 	dateToUTC: (dt) ->
 		dt = new Date(dt)
-		"#{dt.getUTCFullYear()}-#{dt.getUTCMonth() + 1}-#{dt.getUTCDate()}T#{dt.getUTCHours()}:#{dt.getUTCMinutes()}:#{dt.getUTCSeconds()}"
+		"#{dt.getUTCFullYear()}-#{@fmt(dt.getUTCMonth()+1)}-#{@fmt dt.getUTCDate()}T#{@fmt dt.getUTCHours()}:#{@fmt dt.getUTCMinutes()}:#{@fmt dt.getUTCSeconds()}"
 
 # ========== profile ==========
 try
@@ -266,12 +266,12 @@ if window.openDatabase?
 					svc svc_name,
 						method: 'sync'
 						type: 'get'
+						background: true
 						data:
 							last: date_svc.dateToStr last.modified
 						callback: (data) ->
 							console.log 'sync', svc_name, data
-							app.db.transaction (tx) =>
-								tx.executeSql "UPDATE [#{svc_name}] SET modified=DATETIME('now') WHERE id=0", [], -> callback? data
+							callback? data
 			@ # end of sync
 		sync_place = -> # sync
 			return if app.offline()
@@ -281,7 +281,6 @@ if window.openDatabase?
 					vals = data.map (p) -> [
 						p.id
 						p.gid
-						p.gref
 						p.name
 						p.location.lat
 						p.location.lng
@@ -293,13 +292,14 @@ if window.openDatabase?
 						p.gtypes
 						p.svctypes
 						p.status
-						date_svc.dateFromWcfToStr(p.created)#.getTime()
-						date_svc.dateFromWcfToStr(p.modified)#.getTime()
+						date_svc.dateFromWcfToStr(p.created)
+						date_svc.dateFromWcfToStr(p.modified)
 					]
-					sql = "INSERT INTO [Place](id,gid,gref,name,lat,lng,vicinity,fulladdr,phone,website,rating,gtypes,svctypes,status,created,modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" # insert new rows
+					sql = "INSERT INTO [Place](id,gid,name,lat,lng,vicinity,fulladdr,phone,website,rating,gtypes,svctypes,status,created,modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" # insert new rows
 					console.log 'db', sql, vals
 					tx.executeSql "DELETE FROM [Place] WHERE id IN (#{ids.join(',')})" # delete old
 					vals.forEach (val) -> tx.executeSql sql, val, null, app.db._onerr
+					tx.executeSql "UPDATE [Place] SET modified=DATETIME('now') WHERE id=0" # update last
 		sync_alerts = (callback) ->
 			load_alerts = (tx) ->
 				tx.executeSql "SELECT * FROM [Alerts] WHERE status=1 and expired > DATETIME('now') ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
@@ -307,12 +307,12 @@ if window.openDatabase?
 					rows = []
 					i = ret.rows.length
 					while i
-						rows.unshift $.extend {}, ret.rows.item --i
-						#row.datetime = new Date row.datetime
-						#row.expired = new Date row.expired
-						#row.created = new Date row.created
-						#row.modified = new Date row.modified
-						#rows.unshift row
+						row = $.extend {}, ret.rows.item --i
+						row.datetime = new Date row.datetime
+						row.expired = new Date row.expired
+						row.created = new Date row.created
+						row.modified = new Date row.modified
+						rows.unshift row
 					console.log 'alerts from db', rows, ret
 					callback? rows, 'alerts'
 				), app.db._onerr
@@ -326,18 +326,19 @@ if window.openDatabase?
 							a.id
 							a.summary
 							a.message
-							date_svc.dateFromWcfToStr(a.datetime)#.getTime()
-							date_svc.dateFromWcfToStr(a.expired)#.getTime()
+							date_svc.dateFromWcfToStr(a.datetime)
+							date_svc.dateFromWcfToStr(a.expired)
 							a.importance
 							a.type
 							a.status
-							date_svc.dateFromWcfToStr(a.created)#.getTime()
-							date_svc.dateFromWcfToStr(a.modified)#.getTime()
+							date_svc.dateFromWcfToStr(a.created)
+							date_svc.dateFromWcfToStr(a.modified)
 						]
 						sql = "INSERT INTO [Alerts](id,summary,message,datetime,expired,importance,type,status,created,modified) VALUES (?,?,?,?,?,?,?,?,?,?);" # insert new rows
 						console.log 'db', sql, vals
 						tx.executeSql "DELETE FROM [Alerts] WHERE id IN (#{ids.join(',')})" # delete old
 						vals.forEach (val) -> tx.executeSql sql, val
+						tx.executeSql "UPDATE [Alerts] SET modified=DATETIME('now') WHERE id=0" # update last
 						# end of if length
 					load_alerts tx
 					@ # end of transaction
@@ -353,19 +354,19 @@ if window.openDatabase?
 				id int not null primary key, 
 				summary nvarchar(100) not null, 
 				message text, 
-				datetime timestamp, 
-				expired timestamp, 
+				datetime datetime, 
+				expired datetime, 
 				importance tinyint not null, 
 				type tinyint not null, 
 				status tinyint not null,
-				created timestamp DEFAULT CURRENT_TIMESTAMP, 
-				modified timestamp not null
-			);", [], (tx) -> # insert 1st record for last update
-				tx.executeSql "INSERT INTO [Alerts](id,summary,importance,type,status,modified) VALUES (0,'LastUpdate',0,0,0,DATETIME(0,'unixepoch'));"
+				created datetime DEFAULT CURRENT_TIMESTAMP, 
+				modified datetime not null
+			);"
+			tx.executeSql "CREATE INDEX IF NOT EXISTS [Alerts_ODR] ON [Alerts] (datetime DESC, importance DESC);"
+			tx.executeSql "INSERT INTO [Alerts](id,summary,importance,type,status,modified) SELECT 0,'LastUpdate',0,0,0,DATETIME(0,'unixepoch') WHERE NOT EXISTS(SELECT * FROM [Alerts] WHERE id=0);"
 			tx.executeSql "CREATE TABLE IF NOT EXISTS [Place] (
 				id int not null primary key, 
 				gid char(40),
-				gref nvarchar(300),
 				name nvarchar(100),
 				lat float,
 				lng float,
@@ -377,10 +378,12 @@ if window.openDatabase?
 				gtypes varchar(100),
 				svctypes tinyint not null,
 				status tinyint not null,
-				created timestamp DEFAULT CURRENT_TIMESTAMP,
-				modified timestamp not null
-			);", [], (tx) -> # insert 1st record for last update
-				tx.executeSql "INSERT INTO [Place](id,name,svctypes,status,modified) VALUES (0,'LastUpdate',0,0,DATETIME(0,'unixepoch'));"
+				created datetime DEFAULT CURRENT_TIMESTAMP,
+				modified datetime not null
+			);"
+			tx.executeSql "CREATE INDEX IF NOT EXISTS [Place_GID] ON [Place] (GID);"
+			tx.executeSql "CREATE INDEX IF NOT EXISTS [Place_TYP] ON [Place] (svctypes);"
+			tx.executeSql "INSERT INTO [Place](id,name,svctypes,status,modified) SELECT 0,'LastUpdate',0,0,DATETIME(0,'unixepoch') WHERE NOT EXISTS(SELECT * FROM [Place] WHERE id=0);"
 	else alert 'open db err'
 
 # ========== pages ==========

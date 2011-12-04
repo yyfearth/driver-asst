@@ -74,7 +74,7 @@ a[data-btn-role="result"] img {
 #result_list {
 	margin: 0;
 	overflow: hidden;
-	overflow-y: scroll;
+	overflow-y: auto;
 }
 #weather {
 	height: 40px;
@@ -115,7 +115,7 @@ a[data-btn-role="result"] img {
 #alerts {
 	margin: 0;
 	overflow: hidden;
-	overflow-y: scroll;
+	overflow-y: auto;
 }
 #detial_info {
 	margin: 0px;
@@ -123,5 +123,5 @@ a[data-btn-role="result"] img {
 }
 #direction_panel {
 	overflow: hidden;
-	overflow-y: scroll;
+	overflow-y: auto;
 }
