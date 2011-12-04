@@ -24,7 +24,7 @@ svc = (svc, cfg) ->
 	cfg.type = if cfg.type? and /get/i.test(cfg.type) then 'GET' else 'POST'
 	cfg.data = JSON.stringify cfg.data if cfg.type is 'POST'
 	# start
-	$.mobile.showPageLoadingMsg() if not cfg.nowait
+	$.mobile.showPageLoadingMsg() if cfg.background or not cfg.nowait
 	$.ajax
 		url: "svc/#{cfg.svc}.svc/#{cfg.method}"
 		type: cfg.type
@@ -60,9 +60,12 @@ date_svc =
 	dateToStr: (dt) ->
 		dt = new Date(dt)
 		"#{dt.getFullYear()}-#{dt.getMonth() + 1}-#{dt.getDate()} #{dt.getHours()}:#{dt.getMinutes()}:#{dt.getSeconds()}"
+	dateFromWcfToStr: (str) ->
+		@dateToStr @dateFromWcf str
 	dateToUTC: (dt) ->
 		dt = new Date(dt)
 		"#{dt.getUTCFullYear()}-#{dt.getUTCMonth() + 1}-#{dt.getUTCDate()}T#{dt.getUTCHours()}:#{dt.getUTCMinutes()}:#{dt.getUTCSeconds()}"
+
 # ========== profile ==========
 try
 	app.user = JSON.parse (sessionStorage.user or localStorage.user)
@@ -99,7 +102,7 @@ $('#search [data-btn-role="home"]').hide()
 b = document.body
 map_spacers = $ document.querySelectorAll '[data-role="map"]'
 $(window).resize ->
-	console.log 'resize', b.clientWidth, b.clientHeight
+	# console.log 'resize', b.clientWidth, b.clientHeight # debug
 	app.horizontal = b.clientWidth > b.clientHeight
 	$(b)[if app.horizontal then 'addClass' else 'removeClass'] 'horizontal'
 	#map_spacers.add('#map').height Math.round (document.body.clientHeight - 93) * if app.horizontal then 1 else 0.45
@@ -218,38 +221,100 @@ app.sync_weather = ->
 hash = (str1, str2) ->
 	h = 'KnightRider\x58\xb5\x04\x05\xf1\x50\x47\x6f\xf0\x40\xd8\xf4\xed\x9d\xd2\x79\xc0\x6e\xa6\xd9\xffKnightRider'
 	sha1(h + str1 + sha1(h + str1 + '\xff' + str2 + h) + str2 + h)
-
+### ----- dev only -----
+if localStorage.places?
+	pls = JSON.parse localStorage.places
+	c = 0
+	for ref, types of pls
+		do (ref, types) ->
+			c++
+			map.plcsvc.getDetails (reference: ref), (p, status) ->
+				if status is google.maps.places.PlacesServiceStatus.OK
+					pp =
+						gid: p.id
+						gref: ref
+						name: p.name
+						location:
+							lat: p.geometry.location.lat()
+							lng: p.geometry.location.lng()
+						vicinity: p.vicinity
+						fulladdr: p.formatted_address
+						phone: p.formatted_phone_number
+						website: if p.website? then (p.website.replace /^http:\/\//, '') else p.url.replace /^.*cid=(\d+).*$/, 'place:$1'
+						rating: if p.rating? then p.rating else null
+						gtypes: p.types.join ','
+						svctypes: types
+					console.log p, status, pp
+					svc 'place',
+						method: 'add'
+						data: place: pp
+	console.log c
+return
+# -------------------- ###
 #  ========== local db ==========
 if window.openDatabase?
 	app.db = openDatabase("KnightRider", "1.0", "Data cache for Knight Rider", 200000);
 	if app.db?
 		app.db._onerr = (t, e) -> console.error 'local db error', t, e
 		app.db.sync = (svc_name, callback) ->
-			svc svc_name,
-				method: 'sync'
-				type: 'get'
-				data:
-					last: date_svc.dateToStr new Date app.user?.last_sync_alert or 0
-				callback: (data) ->
-					console.log 'sync', svc_name, data
-					app.user.last_sync_alert = new Date().getTime() - 10000 if app.user? # -10s
-					callback? data
+			console.log 'sync', svc_name
+			svc_name = svc_name.toLowerCase()
+			app.db.transaction (tx) ->
+				tx.executeSql "SELECT modified FROM [#{svc_name}] WHERE id=0", [], (tx, data) ->
+					last = data.rows.item 0
+					console.log 'last', svc_name, last
+					svc svc_name,
+						method: 'sync'
+						type: 'get'
+						data:
+							last: date_svc.dateToStr last.modified
+						callback: (data) ->
+							console.log 'sync', svc_name, data
+							app.db.transaction (tx) =>
+								tx.executeSql "UPDATE [#{svc_name}] SET modified=DATETIME('now') WHERE id=0", [], -> callback? data
 			@ # end of sync
-		app.db.alerts_sync = (callback) ->
+		sync_place = -> # sync
+			return if app.offline()
+			app.db.sync 'place', (data) ->
+				if data.length then app.db.transaction (tx) ->
+					ids = data.map (p) -> p.id
+					vals = data.map (p) -> [
+						p.id
+						p.gid
+						p.gref
+						p.name
+						p.location.lat
+						p.location.lng
+						p.vicinity
+						p.fulladdr
+						p.phone
+						p.website
+						p.rating
+						p.gtypes
+						p.svctypes
+						p.status
+						date_svc.dateFromWcfToStr(p.created)#.getTime()
+						date_svc.dateFromWcfToStr(p.modified)#.getTime()
+					]
+					sql = "INSERT INTO [Place](id,gid,gref,name,lat,lng,vicinity,fulladdr,phone,website,rating,gtypes,svctypes,status,created,modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" # insert new rows
+					console.log 'db', sql, vals
+					tx.executeSql "DELETE FROM [Place] WHERE id IN (#{ids.join(',')})" # delete old
+					vals.forEach (val) -> tx.executeSql sql, val, null, app.db._onerr
+		sync_alerts = (callback) ->
 			load_alerts = (tx) ->
-				tx.executeSql "SELECT * FROM [Alerts] WHERE expired > strftime('%s','now') ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
+				tx.executeSql "SELECT * FROM [Alerts] WHERE status=1 and expired > DATETIME('now') ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
 					console.log 'alerts count', ret.rows.length
 					rows = []
 					i = ret.rows.length
 					while i
-						row = $.extend {}, ret.rows.item --i
-						row.datetime = new Date row.datetime
-						row.expired = new Date row.expired
-						row.created = new Date row.created
-						row.modified = new Date row.modified
-						rows.unshift row
+						rows.unshift $.extend {}, ret.rows.item --i
+						#row.datetime = new Date row.datetime
+						#row.expired = new Date row.expired
+						#row.created = new Date row.created
+						#row.modified = new Date row.modified
+						#rows.unshift row
 					console.log 'alerts from db', rows, ret
-					callback? rows
+					callback? rows, 'alerts'
 				), app.db._onerr
 			if app.offline()
 				app.db.transaction load_alerts
@@ -261,13 +326,13 @@ if window.openDatabase?
 							a.id
 							a.summary
 							a.message
-							date_svc.dateFromWcf(a.datetime).getTime()
-							date_svc.dateFromWcf(a.expired).getTime()
+							date_svc.dateFromWcfToStr(a.datetime)#.getTime()
+							date_svc.dateFromWcfToStr(a.expired)#.getTime()
 							a.importance
 							a.type
 							a.status
-							date_svc.dateFromWcf(a.created).getTime()
-							date_svc.dateFromWcf(a.modified).getTime()
+							date_svc.dateFromWcfToStr(a.created)#.getTime()
+							date_svc.dateFromWcfToStr(a.modified)#.getTime()
 						]
 						sql = "INSERT INTO [Alerts](id,summary,message,datetime,expired,importance,type,status,created,modified) VALUES (?,?,?,?,?,?,?,?,?,?);" # insert new rows
 						console.log 'db', sql, vals
@@ -278,20 +343,44 @@ if window.openDatabase?
 					@ # end of transaction
 				@ # end of sync
 			@ # end of alerts sync
+		app.db.sync_all = (callback) ->
+			console.log 'sync all'
+			sync_place()
+			sync_alerts(callback)
 		# create table
 		app.db.transaction (tx) ->
 			tx.executeSql "CREATE TABLE IF NOT EXISTS [Alerts] (
-				id INT UNIQUE, 
-				summary NVARCHAR(100), 
-				message TEXT, 
-				datetime LONG, 
-				expired LONG, 
-				importance TINYINT, 
-				type TINYINT, 
-				status TINYINT,
-				created LONG, 
-				modified LONG
-			)" # , [], app.db.alerts_sync, app.db._onerr
+				id int not null primary key, 
+				summary nvarchar(100) not null, 
+				message text, 
+				datetime timestamp, 
+				expired timestamp, 
+				importance tinyint not null, 
+				type tinyint not null, 
+				status tinyint not null,
+				created timestamp DEFAULT CURRENT_TIMESTAMP, 
+				modified timestamp not null
+			);", [], (tx) -> # insert 1st record for last update
+				tx.executeSql "INSERT INTO [Alerts](id,summary,importance,type,status,modified) VALUES (0,'LastUpdate',0,0,0,DATETIME(0,'unixepoch'));"
+			tx.executeSql "CREATE TABLE IF NOT EXISTS [Place] (
+				id int not null primary key, 
+				gid char(40),
+				gref nvarchar(300),
+				name nvarchar(100),
+				lat float,
+				lng float,
+				vicinity nvarchar(200),
+				fulladdr nvarchar(1000),
+				phone varchar(15),
+				website varchar(100),
+				rating tinyint,
+				gtypes varchar(100),
+				svctypes tinyint not null,
+				status tinyint not null,
+				created timestamp DEFAULT CURRENT_TIMESTAMP,
+				modified timestamp not null
+			);", [], (tx) -> # insert 1st record for last update
+				tx.executeSql "INSERT INTO [Place](id,name,svctypes,status,modified) VALUES (0,'LastUpdate',0,0,DATETIME(0,'unixepoch'));"
 	else alert 'open db err'
 
 # ========== pages ==========
@@ -312,13 +401,15 @@ $('#home').bind
 		# sync weather
 		app.sync_weather()
 		# sync alerts
-		app.db.alerts_sync (alerts) ->
-			alert_el = $('#alerts').empty()
-			html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>'
-			html = "<li data-role=\"list-divider\" class=\"ui-body-c list-none\">#{alerts.length} Alerts</li>" + alerts.map((a) ->
-				"<li><a href=\"javascript:alert('Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
-			).join '' if alerts.length > 0
-			$('#alerts').html(html).listview().listview 'refresh'
+		app.db.sync_all (data, svc) ->
+			if svc is 'alerts' # only read when offline
+				alerts = data
+				alert_el = $('#alerts').empty()
+				html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>'
+				html = "<li data-role=\"list-divider\" class=\"ui-body-c list-none\">#{alerts.length} Alerts</li>" + alerts.map((a) ->
+					"<li><a href=\"javascript:alert('Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
+				).join '' if alerts.length > 0
+				$('#alerts').html(html).listview().listview 'refresh'
 		#@auto = setInterval (->
 		#	map.getCurPos (curlatlng, addr) -> $('#home_addr').text addr if addr? # set addr info
 		#), 30000 # every 30s
@@ -511,6 +602,12 @@ $('#search_history').bind pagecreate: ->
 		app.selected_place = app.user.place_search_history[Number $(@).attr 'data-index']
 $('#search_history').bind 'pageshow pagebeforeshow', -> $('#search_history_list').listview 'refresh' if @created
 
+place_svc_typs =
+	'Service Station': 2
+	'Gas Station': 4
+	'Towing Station': 8
+	'Vehicle Repair Station': 16
+
 # result page
 $('#result').bind
 	pagebeforeshow: ->
@@ -542,7 +639,16 @@ $('#result').bind
 					else if status is google.maps.places.PlacesServiceStatus.OK
 						$('#result_addr').text "#{app.search_keyword} (#{results.length})"
 						result_list.height document.body.clientHeight - result_list.offset().top
+						# ----- dev only -----
 						console.log 'search result', results
+						pls = if localStorage.places? then JSON.parse(localStorage.places) else {}
+						results.forEach (r) ->
+							if pls[r.id]?
+								pls[r.reference] |= place_svc_typs[app.search_keyword]
+							else
+								pls[r.reference] = place_svc_typs[app.search_keyword]
+						localStorage.places = JSON.stringify pls
+						# --------------------
 						# sort results
 						app.result_map = {}
 						results.forEach (r) ->
@@ -615,12 +721,21 @@ $('#detail').bind
 			map.setMarkers position: place.geometry.location
 			map.setZoom 15
 			$('#detail_place').text place.name
+			ln_type = 'Visit its Website'
+			if place.website?
+				if /^place:\d+/.test place.website
+					place.website = place.website.replace 'place:', 'http://maps.google.com/maps/place?cid='
+					ln_type = 'View on Google Place'
+				if not /^http/.test place.website
+					place.website = 'http://' + place.website
+			else
+				place.website = place.url
+				ln_type = 'View on Google Place'
 			detial_info.html "<ul>
 <li>#{place.formatted_address}</li><li>#{place.formatted_phone_number}</li>
 <li>#{place.types.join(', ').replace(/_/g, ' ').toUpperCase()}</li>
-<li>#{if place.rating? then proc_rating(place.rating) else '(No Rating Data)' }</li>
-<li><a href=\"#{place.website or place.url}\" target=\"_blank\">
-#{if place.website? then 'Visit its Website' else 'View on Google Place'}</a></li></ul>"
+<li>#{if place.rating? then proc_rating(place.rating) else '(No Rating Yet)' }</li>
+<li><a href=\"#{place.website}\" target=\"_blank\">#{ln_type}</a></li></ul>"
 			# save history
 			psh = app.user.place_search_history ?= []
 			if psh.length is 0 or psh[0].id isnt app.selected_place.id
@@ -676,4 +791,4 @@ $('#direction').bind
 		#@auto = clearInterval @auto
 		map.dirrdr.setMap null
 #  ========== end ==========
-console.log 4 # jsmin app.js && rm app.js && mv app.min.js app.js
+console.log 'Wilson', 7 # jsmin app.js && rm app.js && mv app.min.js app.js

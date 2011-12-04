@@ -1,7 +1,7 @@
 USE [KnightRider]
 GO
 
-/****** Object:  Table [dbo].[Place]    Script Date: 12/01/2011 03:10:21 ******/
+/****** Object:  Table [dbo].[Place]    Script Date: 12/04/2011 00:44:17 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -12,18 +12,19 @@ SET ANSI_PADDING ON
 GO
 
 CREATE TABLE [dbo].[Place](
-	[ID] [int] NOT NULL,
+	[ID] [int] IDENTITY(1,1) NOT NULL,
 	[GID] [char](40) NOT NULL,
-	[RawData] [text] NULL,
-	[GReference] [text] NULL,
-	[Name] [nvarchar](100) NULL,
-	[Latitude] [float] NULL,
-	[Longitude] [float] NULL,
-	[Vicinity] [nvarchar](200) NULL,
-	[FullAddress] [nvarchar](1000) NULL,
-	[ContactInfo] [text] NULL,
-	[Rating] [tinyint] NULL,
-	[KRType] [tinyint] NULL,
+	[GReference] [varchar](300) NOT NULL,
+	[GTypes] [varchar](100) NOT NULL,
+	[Name] [nvarchar](100) NOT NULL,
+	[Latitude] [float] NOT NULL,
+	[Longitude] [float] NOT NULL,
+	[Vicinity] [nvarchar](200) NOT NULL,
+	[FullAddress] [nvarchar](1000) NOT NULL,
+	[Phone] [varchar](15) NULL,
+	[Website] [varchar](100) NULL,
+	[Rating] [float] NULL,
+	[SvcTypes] [tinyint] NOT NULL,
 	[Status] [tinyint] NOT NULL,
 	[ExtraData] [text] NULL,
 	[CreatedTime] [datetime] NOT NULL,

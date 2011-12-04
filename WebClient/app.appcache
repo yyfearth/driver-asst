@@ -31,8 +31,8 @@ CACHE:
 index.html
 
 #style sheets
-app.css
 lib/jquery.mobile-1.0.min.css
+#app.css
 
 #style sheet images
 lib/images/ajax-loader.png
@@ -44,12 +44,12 @@ res/kr.jpg
 #//maps.googleapis.com/maps/api/js?libraries=places&sensor=true&language=en-US
 lib/jquery-1.7.1.min.js
 lib/jquery.mobile-1.0.min.js
-app.js
+#app.js
 
 # dev
-#NETWORK:
-#app.js
-#app.css
+NETWORK:
+app.js
+app.css
 
 NETWORK:
 *

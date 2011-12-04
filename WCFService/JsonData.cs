@@ -53,24 +53,31 @@ namespace KnightRider {
 		public UserStatus status { get; set; }
 	}
 	// place
-	[DataContract]
-	public enum PlaceKRType { // 1 should be the default correct value
+	[DataContract, Flags]
+	public enum PlaceSvcType { // 1 should be the default correct value
 		Invalid = 0,
-		Unspecified = 1,
+		Unspecified = 1, // All
+		ServiceStation = 2,
+		GasStation = 4,
+		TowingStation = 8,
+		RepairStation = 16,
 		// todo: add more types
 	}
 	[DataContract]
 	public enum PlaceStatus { // 1 should be the default correct value
 		Invalid = 0,
-		IDOnly = 1, // only has gid
-		Parsed = 2, // have parsed raw data
-		Processed = 3, // todo: define it
+		Normal = 1,
 		// todo: add more status
 	}
 	[DataContract]
 	public class PlaceJson : DataJson {
+		// name,vicinity,fulladdr,location,rating,phone,website,gtypes,svctypes,status,gid,gref
+		//private float? _rating;
+		[DataContract]
 		public class GeoLocation {
+			[DataMember]
 			public double lat { get; set; }
+			[DataMember]
 			public double lng { get; set; }
 		}
 		[DataMember]
@@ -78,22 +85,25 @@ namespace KnightRider {
 		[DataMember]
 		public string vicinity { get; set; }
 		[DataMember]
-		public string fulladdr { get; set; }
+		public string fulladdr { get; set; } // formatted_address
 		[DataMember]
-		public GeoLocation location { get; set; }
+		public GeoLocation location { get; set; } // geometry.location
 		[DataMember]
-		public byte rating { get; set; }
-		//public ContactInfo contacts { get; set; }
+		public float? rating { get; set; }
 		[DataMember]
-		public PlaceKRType krtype { get; set; }
+		public string phone { get; set; } // formatted_phone_number
+		[DataMember]
+		public string website { get; set; } // website or google place page url
+		[DataMember]
+		public string gtypes { get; set; } // types
+		[DataMember]
+		public PlaceSvcType svctypes { get; set; } // multi
 		[DataMember]
 		public PlaceStatus status { get; set; }
 		[DataMember]
-		public string gid { get; set; }
+		public string gid { get; set; } // id
 		[DataMember]
-		public string gref { get; set; } // uid or json
-		[DataMember]
-		public dynamic RawData { get; set; } // json
+		public string gref { get; set; } // original reference
 	}
 	// appointment
 	[DataContract]

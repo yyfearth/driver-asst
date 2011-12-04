@@ -149,10 +149,10 @@ namespace KnightRider {
 			using (SqlConnection cn = new SqlConnection(conn)) {
 				SqlCommand cmd;
 				if (lastmod == null || lastmod.Ticks == 0) {
-					string sql = "SELECT * FROM [Appointment] WHERE Status!=0";
+					string sql = "SELECT * FROM [Appointment] WHERE Status!=0 and type!=0";
 					cmd = new SqlCommand(sql, cn);
 				} else {
-					string sql = "SELECT * FROM [Appointment] WHERE Status!=0 and ModifiedTime >= @MT";
+					string sql = "SELECT * FROM [Appointment] WHERE Status!=0 and type!=0 and ModifiedTime >= @MT";
 					cmd = new SqlCommand(sql, cn);
 					cmd.Parameters.AddWithValue("@MT", lastmod);
 				}
@@ -214,10 +214,10 @@ namespace KnightRider {
 			using (SqlConnection cn = new SqlConnection(conn)) {
 				SqlCommand cmd;
 				if (lastmod == null || lastmod.Ticks == 0) {
-					string sql = "SELECT * FROM [Alert] WHERE Status!=0";
+					string sql = "SELECT * FROM [Alert] WHERE Status!=0 and type!=0";
 					cmd = new SqlCommand(sql, cn);
 				} else {
-					string sql = "SELECT * FROM [Alert] WHERE Status!=0 and ModifiedTime >= @MT";
+					string sql = "SELECT * FROM [Alert] WHERE Status!=0 and type!=0 and ModifiedTime >= @MT";
 					cmd = new SqlCommand(sql, cn);
 					cmd.Parameters.AddWithValue("@MT", lastmod);
 				}
@@ -261,6 +261,73 @@ namespace KnightRider {
 				cmd.Parameters.AddWithValue("@Summary", alert.summary);
 				cmd.Parameters.AddWithValue("@Message", alert.message);
 				cmd.Parameters.AddWithValue("@Importance", alert.importance); // default 0
+				cn.Open();
+				var ret = cmd.ExecuteNonQuery();
+				if (ret < 1) throw new NoEffectException();
+			}
+		}
+
+		public static PlaceJson[] SyncPlace(DateTime lastmod) {
+			using (SqlConnection cn = new SqlConnection(conn)) {
+				SqlCommand cmd;
+				if (lastmod == null || lastmod.Ticks == 0) {
+					string sql = "SELECT * FROM [Place] WHERE Status!=0 and svctypes!=0";
+					cmd = new SqlCommand(sql, cn);
+				} else {
+					string sql = "SELECT * FROM [Place] WHERE Status!=0 and svctypes!=0 and ModifiedTime >= @MT";
+					cmd = new SqlCommand(sql, cn);
+					cmd.Parameters.AddWithValue("@MT", lastmod);
+				}
+				cn.Open();
+				SqlDataReader rdr = cmd.ExecuteReader(CommandBehavior.CloseConnection);
+				var list = new List<PlaceJson>();
+				while (rdr.Read()) {
+					// get the results of each column
+					var p = new PlaceJson() {
+						id = Convert.ToUInt32(rdr["ID"]),
+						gid = (string)rdr["GID"],
+						gref = (string)rdr["GReference"],
+						gtypes = (string)rdr["GTypes"],
+						name = (string)rdr["Name"],
+						location = new PlaceJson.GeoLocation() {
+							lat = (double)rdr["Latitude"],
+							lng = (double)rdr["Longitude"]
+						},
+						vicinity = (string)rdr["Vicinity"],
+						fulladdr = (string)rdr["FullAddress"],
+						phone = (string)rdr["Phone"],
+						website = (string)rdr["Website"],
+						rating = rdr["Rating"] == DBNull.Value ? (float?)null : (float?)(double)rdr["Rating"],
+						svctypes = (PlaceSvcType)(byte)rdr["SvcTypes"],
+						status = (PlaceStatus)(byte)rdr["Status"],
+						created = (DateTime)rdr["CreatedTime"],
+						modified = (DateTime)rdr["ModifiedTime"],
+					};
+					list.Add(p);
+				}
+				return list.ToArray<PlaceJson>();
+			}
+		}
+
+		public static void AddPlace(PlaceJson place) {
+			if (place == null) throw new Exception("req is null");
+			if (place.gid == null || place.gid == string.Empty) throw new BadRequestException();
+			using (SqlConnection cn = new SqlConnection(conn)) {
+				string sql = "INSERT INTO [Place] (GID, GReference, GTypes, Name, Latitude, Longitude, Vicinity, FullAddress, Phone, Website, Rating, SvcTypes, Status, CreatedTime, ModifiedTime) VALUES (@GID, @GReference, @GTypes, @Name, @Latitude, @Longitude, @Vicinity, @FullAddress, @Phone, @Website, @Rating, @SvcTypes, 1, GETDATE(), GETDATE())";
+				string rating = place.rating.HasValue ? place.rating.Value.ToString("0.0") : "NULL";
+				sql = sql.Replace("@Rating", rating);
+				SqlCommand cmd = new SqlCommand(sql, cn);
+				cmd.Parameters.AddWithValue("GID", place.gid);
+				cmd.Parameters.AddWithValue("GReference", place.gref);
+				cmd.Parameters.AddWithValue("GTypes", place.gtypes);
+				cmd.Parameters.AddWithValue("Name", place.name);
+				cmd.Parameters.AddWithValue("Latitude", place.location.lat);
+				cmd.Parameters.AddWithValue("Longitude", place.location.lng);
+				cmd.Parameters.AddWithValue("Vicinity", place.vicinity);
+				cmd.Parameters.AddWithValue("FullAddress", place.fulladdr);
+				cmd.Parameters.AddWithValue("Phone", place.phone);
+				cmd.Parameters.AddWithValue("Website", place.website);
+				cmd.Parameters.AddWithValue("SvcTypes", (int)place.svctypes);
 				cn.Open();
 				var ret = cmd.ExecuteNonQuery();
 				if (ret < 1) throw new NoEffectException();
