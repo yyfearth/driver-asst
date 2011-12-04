@@ -5,13 +5,14 @@ window.offline_mode = not navigator.onLine
 window.app = # ns
 	back: -> history.go -1
 	autologin: $('#autologin').val() is 'on'
-	offline: ->
-		console.log 'offline', not navigator.onLine, 'offlinemode', window.offline_mode
-		if navigator.onLine and window.offline_mode
-			alert 'You are online now, App will reload and enable online features!'
+	offline: -> not navigator.onLine
+setTimeout (->
+	if window.offline_mode && navigator.onLine
+		if confirm 'You are online now, \npress OK to reload the App and enable online features!'
 			location.reload()
-			return
-		not navigator.onLine
+		else
+			setTimeout arguments.callee, 60000 # 60s
+), 10000 # 10s
 $(document.body).addClass 'offline' if app.offline()
 # ========== svc ========== 
 svc = (svc, cfg) ->
@@ -427,6 +428,7 @@ $('#reg_form').submit (e) ->
 
 # appointment page
 $('#appointment').bind pagebeforeshow: ->
+	return app.back() if app.offline()
 	$('#datetime').val Date(new Date().getTime() + 60 * 60 * 1000).toLocaleString()
 	$.mobile.changePage '#login', (transition: 'flip', reverse: true) if not (app.user?.sid?.length is 32)
 	false
@@ -521,7 +523,9 @@ $('#result').bind
 		# clear old results
 		result_list = $('#result_list').empty()
 		# create new results
-		map.getCurPos (curlatlng, addr) ->
+		if app.offline()
+			$('#result_addr').text 'You are offline now'
+		else map.getCurPos (curlatlng, addr) ->
 			@setZoom 12
 			#@move 'result'
 			# search result
@@ -605,6 +609,7 @@ $('#detail').bind
 		if not app.selected_place
 			app.back()
 			return
+		$('[data-role="navbar"] a', @)[if app.offline() then 'addClass' else 'removeClass'] 'ui-disabled'
 		show_detail = (place) ->
 			map.setCenter place.geometry.location
 			map.setMarkers position: place.geometry.location
@@ -635,6 +640,8 @@ $('#detail').bind
 			@ # end of show detail
 		if app.selected_place.__detail
 			show_detail app.selected_place.__detail
+		else if app.offline()
+			alert 'todo: offline mode'
 		else map.plcsvc.getDetails (reference: app.selected_place.reference), (place, status) ->
 			if status is google.maps.places.PlacesServiceStatus.OK
 				app.selected_place.__detail = place
@@ -644,6 +651,7 @@ $('#detail').bind
 # direction page
 $('#direction').bind
 	pagebeforeshow: ->
+		return app.back() if app.offline()
 		direction_panel = $('#direction_panel')
 		direction_panel.height document.body.clientHeight - direction_panel.offset().top
 		#curloc = -> map.getCurPos (curlatlng, addr) -> @setMarkers position: curlatlng if addr? # set cur marker
@@ -668,4 +676,4 @@ $('#direction').bind
 		#@auto = clearInterval @auto
 		map.dirrdr.setMap null
 #  ========== end ==========
-console.log 3 # jsmin app.js && rm app.js && mv app.min.js app.js
+console.log 4 # jsmin app.js && rm app.js && mv app.min.js app.js
