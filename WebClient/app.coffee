@@ -358,7 +358,7 @@ $('#login').bind
 				callback: (data) ->
 					console.log data
 					if data.uid and data.sid?.length is 32
-						app.user = uid: data.uid, email: email, sid: data.sid, psw: hash(sid + uid + pk)
+						app.user = uid: data.uid, email: email, sid: data.sid, psw: hash(data.sid + data.uid + pk)
 						$.mobile.changePage '#home', transition: 'flip'
 					else
 						alert 'Login Failed, please try again'
