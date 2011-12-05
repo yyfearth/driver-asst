@@ -68,13 +68,10 @@ a[data-btn-role="result"] img {
 #btn_home_search .ui-btn-inner {
 	padding: 0.2em;
 }
-#detail [data-type="horizontal"] {
-	
-}
 #result_list {
 	margin: 0;
 	overflow: hidden;
-	overflow-y: scroll;
+	overflow-y: auto;
 }
 #weather {
 	height: 40px;
@@ -123,5 +120,5 @@ a[data-btn-role="result"] img {
 }
 #direction_panel {
 	overflow: hidden;
-	overflow-y: scroll;
+	overflow-y: auto;
 }

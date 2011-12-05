@@ -5,14 +5,15 @@ window.offline_mode = not navigator.onLine
 window.app = # ns
 	back: -> history.go -1
 	autologin: $('#autologin').val() is 'on'
-	offline: -> not navigator.onLine
-setTimeout (->
+	offline: -> window.offline_mode or not navigator.onLine
+check_online = ->
 	if window.offline_mode and navigator.onLine
 		if confirm 'You are online now, \npress OK to reload the App and enable online features!'
 			location.reload()
 		else
 			setTimeout arguments.callee, 60000 # 60s
-), 10000 # 10s
+	else setTimeout arguments.callee, 10000 # 10s
+check_online() # 10s
 $(document.body).addClass 'offline' if app.offline()
 # ========== svc ========== 
 svc = (svc, cfg) ->
@@ -55,8 +56,10 @@ date_svc =
 		m = str.match /^\/Date\((\d+)([+-]\d{2})(\d{2})\)\/$/
 		return null if m.length isnt 4
 		ts = Number m[1]
-		h = Number m[2]
-		new Date(ts - h * 3600000)
+		new Date(ts) # ts is local already
+		#h = Number m[2]
+		#console.log 'wcf to date', str, ts, h, new Date(ts - h * 3600000)
+		#new Date(ts - h * 3600000)
 	dateToStr: (dt) ->
 		dt = new Date(dt)
 		"#{dt.getFullYear()}-#{@fmt(dt.getMonth()+1)}-#{@fmt dt.getDate()} #{@fmt dt.getHours()}:#{@fmt dt.getMinutes()}:#{@fmt dt.getSeconds()}"
@@ -110,7 +113,7 @@ $(document.body).resize()
 map = app.map = null
 # build shared map
 if not app.offline()
-	$('#home').one pageshow: -> map.el.offset $('#home_map').offset()
+	#$('#home').one pageshow: -> map.el.offset $('#home_map').offset()
 	map = app.map = new google.maps.Map $('#map')[0],
 		zoom: 15
 		mapTypeId: google.maps.MapTypeId.ROADMAP
@@ -130,7 +133,7 @@ if not app.offline()
 		trafficLayer.setMap @
 		$.extend @,
 			setMarkers: (markers_cfg) =>
-				console.log 'markers', markers_cfg
+				#console.log 'markers', markers_cfg
 				if not markers_cfg
 					markers_cfg = null
 				else if not $.isArray markers_cfg
@@ -153,7 +156,7 @@ if not app.offline()
 				else navigator.geolocation.getCurrentPosition ((pos) =>
 					# get geo location
 					curlatlng = map.lastlatlng = new google.maps.LatLng pos.coords.latitude, pos.coords.longitude
-					console.log 'curlatlng', curlatlng
+					#console.log 'curlatlng', curlatlng
 					if not curlatlng.equals @getCenter()
 						curlatlng.changed = true
 					if auto and curlatlng.changed
@@ -179,12 +182,14 @@ if not app.offline()
 		pagebeforeshow: ->
 			map.el.addClass 'hidden'
 			# offline check
+			#check_online()
 			$(document.body)[if app.offline() then 'addClass' else 'removeClass'] 'offline'
 		pageshow: ->
 			$.mobile.fixedToolbars.show()
 			@hh = $('[data-role="header"]', @)?.outerHeight() or 0
 			@fh = $('[data-role="footer"]', @)?.outerHeight() or 0
 			@bh = document.body.clientHeight - @hh - @fh
+			map.el.css 'top', @hh
 			$('.map', @).add(map.el).height @bh * if app.horizontal then 1 else 0.45
 			map.el.removeClass 'hidden' if $(@).hasClass('has-map')
 # init map if online
@@ -194,7 +199,7 @@ app.sync_weather = ->
 	ref_w = (j) ->
 		if j.weather?.current_conditions?
 			cur = j.weather.current_conditions
-			console.log 'w:', j
+			console.log 'weather', j
 			getIcon = (d) -> "//www.google.com" + d.icon.data
 			el = $('#weather').html "<div id=\"weather_now\" class=\"weather\"><img src=\"#{getIcon cur}\"/>#{cur.condition.data}<br/>#{cur.temp_f.data}\u00b0F</div>" # \u00b0=°
 			el.append (j.weather.forecast_conditions.map (c) ->
@@ -286,17 +291,17 @@ if window.openDatabase?
 			load_values rows, (row) ->
 				row.canappt = /true/i.test row.canappt
 				row.location = lat: row.lat, lng: row.lng
-		load_alerts = (tx) ->
-			tx.executeSql "SELECT * FROM [Alerts] WHERE status=1 and expired > DATETIME('now') ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
-				console.log 'alerts count', ret.rows.length
+		load_alerts = (tx, callback) ->
+			tx.executeSql "SELECT * FROM [Alerts] WHERE status=1 and expired > DATETIME('now','localtime') ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
+				#console.log 'alerts count', ret.rows.length
 				rows = load_values ret.rows, (row) ->
-					row.created = new Date row.created
-					row.modified = new Date row.modified
+					row.datetime = new Date row.datetime
+					row.expired = new Date row.expired
 				console.log 'alerts from db', rows, ret
 				callback? rows, 'alerts'
 			), app.db._onerr
 			@ # end of load alerts
-		sync_alerts = (callback) ->
+		app.db.sync_alerts = (callback) ->
 			if app.offline()
 				app.db.transaction load_alerts
 			else app.db.sync 'alerts', (data) ->
@@ -319,13 +324,13 @@ if window.openDatabase?
 						console.log 'db', sql, vals
 						tx.executeSql "DELETE FROM [Alerts] WHERE id IN (#{ids.join(',')})" # delete old
 						vals.forEach (val) -> tx.executeSql sql, val
-						tx.executeSql "UPDATE [Alerts] SET modified=DATETIME('now') WHERE id=0" # update last
+						tx.executeSql "UPDATE [Alerts] SET modified=DATETIME('now','localtime') WHERE id=0" # update last
 						# end of if length
-					load_alerts tx
+					load_alerts tx, callback
 					@ # end of transaction
 				@ # end of sync
 			@ # end of alerts sync
-		sync_place = -> # sync
+		app.db.sync_place = -> # sync
 			return if app.offline()
 			app.db.sync 'place', (data) ->
 				if data.length then app.db.transaction (tx) ->
@@ -354,10 +359,10 @@ if window.openDatabase?
 					console.log 'db', sql, vals
 					tx.executeSql "DELETE FROM [Place] WHERE id IN (#{ids.join(',')})" # delete old
 					vals.forEach (val) -> tx.executeSql sql, val, null, app.db._onerr
-					tx.executeSql "UPDATE [Place] SET modified=DATETIME('now') WHERE id=0" # update last
+					tx.executeSql "UPDATE [Place] SET modified=DATETIME('now','localtime') WHERE id=0" # update last
 		app.db.query_place = (svct, callback) ->
 			app.db.transaction (tx) -> tx.executeSql "SELECT * FROM [Place] WHERE status<>0 and svctypes&#{svct}<>0;", [], ((tx, ret) ->
-				console.log 'place query count', ret.rows.length
+				#console.log 'place query count', ret.rows.length
 				rows = load_places ret.rows
 				console.log 'place from db', rows, ret
 				callback? rows
@@ -370,10 +375,6 @@ if window.openDatabase?
 				callback? rows
 			), app.db._onerr
 			@ # end of query place
-		app.db.sync_all = (callback) ->
-			console.log 'sync all'
-			sync_place()
-			sync_alerts(callback)
 		# create table
 		app.db.transaction (tx) ->
 			console.log 'init tables'
@@ -386,12 +387,12 @@ if window.openDatabase?
 				importance tinyint not null, 
 				type tinyint not null, 
 				status tinyint not null,
-				created datetime DEFAULT CURRENT_TIMESTAMP, 
+				created datetime not null, 
 				modified datetime not null
 			);"
-			console.log 'init alerts'
+			#console.log 'init alerts'
 			tx.executeSql "CREATE INDEX IF NOT EXISTS [Alerts_ODR] ON [Alerts] (datetime DESC, importance DESC);"
-			tx.executeSql "INSERT INTO [Alerts](id,summary,importance,type,status,modified) SELECT 0,'LastUpdate',0,0,0,DATETIME(0,'unixepoch') WHERE NOT EXISTS(SELECT * FROM [Alerts] WHERE id=0);"
+			tx.executeSql "INSERT INTO [Alerts](id,summary,importance,type,status,created,modified) SELECT 0,'LastUpdate',0,0,0,DATETIME('now','localtime'),DATETIME(0,'unixepoch','localtime') WHERE NOT EXISTS(SELECT * FROM [Alerts] WHERE id=0);"
 			tx.executeSql "CREATE TABLE IF NOT EXISTS [Place] (
 				id int not null primary key, 
 				gid char(40),
@@ -409,14 +410,14 @@ if window.openDatabase?
 				openhours text,
 				canappt bit not null,
 				status tinyint not null,
-				created datetime DEFAULT CURRENT_TIMESTAMP,
+				created datetime not null,
 				modified datetime not null
 			);"
-			console.log 'init place'
+			#console.log 'init place'
 			tx.executeSql "CREATE UNIQUE INDEX IF NOT EXISTS [Place_GID] ON [Place] (GID);"
 			tx.executeSql "CREATE INDEX IF NOT EXISTS [Place_TYP] ON [Place] (svctypes);"
-			tx.executeSql "INSERT INTO [Place](id,name,canappt,svctypes,status,modified) SELECT 0,'LastUpdate',0,0,0,DATETIME(0,'unixepoch') WHERE NOT EXISTS(SELECT * FROM [Place] WHERE id=0);"
-			console.log 'finish init tables'
+			tx.executeSql "INSERT INTO [Place](id,name,canappt,svctypes,status,created,modified) SELECT 0,'LastUpdate',0,0,0,DATETIME('now','localtime'),DATETIME(0,'unixepoch','localtime') WHERE NOT EXISTS(SELECT * FROM [Place] WHERE id=0);"
+			#console.log 'finish init tables'
 	else alert 'open db err'
 
 # ========== pages ==========
@@ -424,7 +425,7 @@ if window.openDatabase?
 $('#home').bind
 	pagecreate: -> @created = true
 	pagebeforeshow: ->
-		console.log 'home pageshow'
+		#console.log 'home pageshow'
 		created = @created
 		# init nav api and home page
 		if app.offline()
@@ -436,16 +437,17 @@ $('#home').bind
 				@setMarkers position: curlatlng # set cur marker
 		# sync weather
 		app.sync_weather()
+		# sync place
+		app.db.sync_place()
 		# sync alerts
-		app.db.sync_all (data, svc) ->
-			if svc is 'alerts' # only read when offline
-				alerts = data
-				alert_el = $('#alerts').empty()
-				html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>'
-				html = "<li data-role=\"list-divider\" class=\"ui-body-c list-none\">#{alerts.length} Alerts</li>" + alerts.map((a) ->
-					"<li><a href=\"javascript:alert('Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
-				).join '' if alerts.length > 0
-				$('#alerts').html(html).listview().listview 'refresh'
+		app.db.sync_alerts (alerts) ->
+			console.log 'alerts', alerts
+			alert_el = $('#alerts').empty()
+			html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>'
+			html = "<li data-role=\"list-divider\" class=\"ui-body-c list-none\">#{alerts.length} Alerts</li>" + alerts.map((a) ->
+				"<li><a href=\"javascript:alert('Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
+			).join '' if alerts.length > 0
+			$('#alerts').html(html).listview().listview 'refresh'
 		#@auto = setInterval (->
 		#	map.getCurPos (curlatlng, addr) -> $('#home_addr').text addr if addr? # set addr info
 		#), 30000 # every 30s
@@ -483,7 +485,6 @@ $('#login').bind
 					email: email
 					password: pk
 				callback: (data) ->
-					console.log data
 					if data.uid and data.sid?.length is 32
 						app.user = uid: data.uid, email: email, sid: data.sid, psw: hash(data.sid + data.uid + pk)
 						$.mobile.changePage '#home', transition: 'flip'
@@ -502,7 +503,7 @@ $('#login').bind
 		$('#password').val ''
 		$('#login_form_warp').show()
 		console.log 'logout', app.user
-		if navigator.onLine
+		if not app.offline()
 			$('button', @).button 'enable'
 			$('#btn_reg').removeClass 'ui-disabled'
 			return if not app.user?
@@ -588,11 +589,13 @@ $('#appt_form').submit (e) ->
 	false
 
 # search menu page
-# $('#search').bind pageshow: -> @map.keyword = null if @map? # clear app.search_keyword
+$('#search').bind pageshow: ->
+	#@map.keyword = null if @map? # clear app.search_keyword
+	$('#btn_custom_search')[if app.offline() then 'addClass' else 'removeClass'] 'ui-disabled'
 # bind buttons and menus
 $('[data-btn-role="search"]').live vclick: (e) ->
 	app.search_keyword = $(@).text()
-	console.log 'vclick', app.search_keyword
+	#console.log 'vclick', app.search_keyword
 	@ # end of vclick
 
 app.custom_search_history_refresh = ->
@@ -629,7 +632,7 @@ $('#custom_search_form').submit ->
 	if keyword
 		app.search_keyword = new String(keyword)
 		$.mobile.changePage '#result'
-		console.log 'vclick', app.search_keyword
+		#console.log 'vclick', app.search_keyword
 	else input.focus().val ''
 	false # end of submit
 
@@ -649,7 +652,7 @@ place_svc_typs =
 
 # result page
 $('#result').bind
-	pagecreate: ->
+	pageshow: ->
 		result_list = $('#result_list')
 		result_list.height document.body.clientHeight - result_list.offset().top
 		@ # end of create
@@ -689,7 +692,7 @@ $('#result').bind
 					# add to list in order
 					result_list.append results.map((r, i) ->
 						seq = if pos? then "<div style=\"float:left\">#{String.fromCharCode 65 + i}</div>" else ''
-						console.log seq, pos
+						#console.log seq, pos
 						"<li><a href=\"#detail\" data-btn-role=\"result\" id=\"#{r.gid}\">#{seq}<h3 class=\"ui-li-heading\">#{r.name}</h3><p class=\"ui-li-desc\">#{r.vicinity}</p></li>"
 					).join ''
 					result_list.listview 'refresh'
@@ -768,7 +771,7 @@ proc_rating = (rating) ->
 	stars += '<img src="res/halfstar.png"/>' if rating - i > 0.4
 	stars # end of proc rating
 $('#result_list a').live vclick: ->
-	console.log @id
+	#console.log @id
 	app.selected_place = app.result_map[@id]
 $('#detail').bind
 	pagecreate: ->
@@ -778,17 +781,17 @@ $('#detail').bind
 			$('#appointment').dialog('close')
 			false # end fo create
 	pageshow: ->
-		detial_info = $('#detial_info')
+		detial_info = $('#detial_info').empty()
 		detial_info.height document.body.clientHeight - detial_info.offset().top - @fh
-		console.log 'detailof', app.selected_place
+		console.log 'start get detail of', app.selected_place
 		window.scrollTop = 0
 		if not app.selected_place
 			app.back()
 			return
+		$('[data-role="navbar"] a', @)[if app.offline() then 'addClass' else 'removeClass'] 'ui-disabled'
 		show_detail = (place) ->
 			console.log 'show detail', place
-			$('[data-role="navbar"] a', @)[if app.offline() then 'addClass' else 'removeClass'] 'ui-disabled'
-			$('#btn_appt')[if not place.canappt then 'addClass' else 'removeClass'] 'ui-disabled'
+			$('#btn_appt')[if not place.canappt then 'addClass' else 'removeClass'] 'ui-disabled' if not app.offline()
 			if app.map?
 				map.setCenter place.geometry.location
 				map.setMarkers position: place.geometry.location
@@ -826,12 +829,12 @@ $('#detail').bind
 					vicinity: place.vicinity
 					icon: place.icon?.replace /^http:/, ''
 				app.place_search_history_refresh()
-			console.log place
+			#console.log place
 			@ # end of show detail
 		sel_p = app.selected_place
 		if sel_p.gtypes?
 			show_detail sel_p
-		else app.db.get_place sel_p.id, (p) ->
+		else app.db.get_place sel_p.gid, (p) ->
 			if p.length
 				p = p[0]
 				$.extend sel_p, p
@@ -849,15 +852,18 @@ $('#detail').bind
 						sel_p.canappt = false
 						show_detail sel_p
 					else alert 'Get Details Failed'
-			else alert 'You are offline now, and there is no this place\'s data on local database'
+			else
+				alert 'You are offline now, and there is no this place\'s data on local database'
+				app.back()
 		@ # end of show
 
 # direction page
 $('#direction').bind
 	pagebeforeshow: ->
-		return app.back() if app.offline()
+		if app.offline()
+			app.back()
+			return
 		direction_panel = $('#direction_panel')
-		direction_panel.height document.body.clientHeight - direction_panel.offset().top
 		#curloc = -> map.getCurPos (curlatlng, addr) -> @setMarkers position: curlatlng if addr? # set cur marker
 		#@auto = setInterval curloc, 10000 # every 10s
 		map.getCurPos (curlatlng, addr) ->
@@ -876,6 +882,11 @@ $('#direction').bind
 					# show self
 					#curloc()
 				else alert('Directions failed: ' + dirStatus)
+		@ # end of before show
+	pageshow: ->
+		direction_panel = $('#direction_panel')
+		direction_panel.height document.body.clientHeight - direction_panel.offset().top
+		@
 	pagehide: ->
 		#@auto = clearInterval @auto
 		map.dirrdr.setMap null
