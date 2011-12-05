@@ -123,5 +123,5 @@ a[data-btn-role="result"] img {
 }
 #direction_panel {
 	overflow: hidden;
-	overflow-y: auto;
+	overflow-y: scroll;
 }

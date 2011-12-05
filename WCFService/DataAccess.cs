@@ -295,8 +295,11 @@ namespace KnightRider {
 						vicinity = (string)rdr["Vicinity"],
 						fulladdr = (string)rdr["FullAddress"],
 						phone = (string)rdr["Phone"],
+						email = rdr["Email"] == DBNull.Value ? null : (string)rdr["Email"],
 						website = (string)rdr["Website"],
 						rating = rdr["Rating"] == DBNull.Value ? (float?)null : (float?)(double)rdr["Rating"],
+						openhours = rdr["OpenHours"] == DBNull.Value ? null : (string)rdr["OpenHours"],
+						canappt = (bool)rdr["CanAppointment"],
 						svctypes = (PlaceSvcType)(byte)rdr["SvcTypes"],
 						status = (PlaceStatus)(byte)rdr["Status"],
 						created = (DateTime)rdr["CreatedTime"],
@@ -312,20 +315,24 @@ namespace KnightRider {
 			if (place == null) throw new Exception("req is null");
 			if (place.gid == null || place.gid == string.Empty) throw new BadRequestException();
 			using (SqlConnection cn = new SqlConnection(conn)) {
-				string sql = "INSERT INTO [Place] (GID, GReference, GTypes, Name, Latitude, Longitude, Vicinity, FullAddress, Phone, Website, Rating, SvcTypes, Status, CreatedTime, ModifiedTime) VALUES (@GID, @GReference, @GTypes, @Name, @Latitude, @Longitude, @Vicinity, @FullAddress, @Phone, @Website, @Rating, @SvcTypes, 1, GETDATE(), GETDATE())";
+				string sql = "INSERT INTO [Place] (GID, GTypes, Name, Latitude, Longitude, Vicinity, FullAddress, Phone, Email, Website, Rating, SvcTypes, OpenHours, CanAppointment, Status, CreatedTime, ModifiedTime) VALUES (@GID, @GTypes, @Name, @Latitude, @Longitude, @Vicinity, @FullAddress, @Phone, @Email, @Website, @Rating, @OpenHours, @CanAppointment, @SvcTypes, 1, GETDATE(), GETDATE())";
 				string rating = place.rating.HasValue ? place.rating.Value.ToString("0.0") : "NULL";
 				sql = sql.Replace("@Rating", rating);
 				SqlCommand cmd = new SqlCommand(sql, cn);
-				cmd.Parameters.AddWithValue("GID", place.gid);
-				cmd.Parameters.AddWithValue("GTypes", place.gtypes);
-				cmd.Parameters.AddWithValue("Name", place.name);
-				cmd.Parameters.AddWithValue("Latitude", place.location.lat);
-				cmd.Parameters.AddWithValue("Longitude", place.location.lng);
-				cmd.Parameters.AddWithValue("Vicinity", place.vicinity);
-				cmd.Parameters.AddWithValue("FullAddress", place.fulladdr);
-				cmd.Parameters.AddWithValue("Phone", place.phone);
-				cmd.Parameters.AddWithValue("Website", place.website);
-				cmd.Parameters.AddWithValue("SvcTypes", (int)place.svctypes);
+				cmd.Parameters.AddWithValue("@GID", place.gid);
+				cmd.Parameters.AddWithValue("@GTypes", place.gtypes);
+				cmd.Parameters.AddWithValue("@Name", place.name);
+				cmd.Parameters.AddWithValue("@Latitude", place.location.lat);
+				cmd.Parameters.AddWithValue("@Longitude", place.location.lng);
+				cmd.Parameters.AddWithValue("@Vicinity", place.vicinity);
+				cmd.Parameters.AddWithValue("@FullAddress", place.fulladdr);
+				cmd.Parameters.AddWithValue("@Email", place.email);
+				cmd.Parameters.AddWithValue("@Phone", place.phone);
+				cmd.Parameters.AddWithValue("@Website", place.website);
+				cmd.Parameters.AddWithValue("@OpenHours", place.openhours);
+				cmd.Parameters.AddWithValue("@CanAppointment", place.canappt);
+				cmd.Parameters.AddWithValue("@SvcTypes", (int)place.svctypes);
+				cmd.Parameters.AddWithValue("@OpenHours", place.openhours);
 				cn.Open();
 				var ret = cmd.ExecuteNonQuery();
 				if (ret < 1) throw new NoEffectException();

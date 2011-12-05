@@ -91,11 +91,17 @@ namespace KnightRider {
 		[DataMember]
 		public float? rating { get; set; }
 		[DataMember]
+		public string email { get; set; }
+		[DataMember]
 		public string phone { get; set; } // formatted_phone_number
 		[DataMember]
 		public string website { get; set; } // website or google place page url
 		[DataMember]
 		public string gtypes { get; set; } // types
+		[DataMember]
+		public bool canappt { get; set; }
+		[DataMember]
+		public string openhours { get; set; }
 		[DataMember]
 		public PlaceSvcType svctypes { get; set; } // multi
 		[DataMember]

@@ -7,7 +7,7 @@ window.app = # ns
 	autologin: $('#autologin').val() is 'on'
 	offline: -> not navigator.onLine
 setTimeout (->
-	if window.offline_mode && navigator.onLine
+	if window.offline_mode and navigator.onLine
 		if confirm 'You are online now, \npress OK to reload the App and enable online features!'
 			location.reload()
 		else
@@ -71,7 +71,7 @@ try
 	app.user = JSON.parse (sessionStorage.user or localStorage.user)
 	if app.user?.uid > 0 and app.user?.sid?.length is 32
 		location.hash = '#home'
-		svc 'user',
+		if not app.offline() then svc 'user',
 			method: 'check'
 			data:
 				uid: app.user.uid
@@ -152,7 +152,7 @@ if not app.offline()
 					callback.call @, null, null
 				else navigator.geolocation.getCurrentPosition ((pos) =>
 					# get geo location
-					curlatlng = new google.maps.LatLng pos.coords.latitude, pos.coords.longitude
+					curlatlng = map.lastlatlng = new google.maps.LatLng pos.coords.latitude, pos.coords.longitude
 					console.log 'curlatlng', curlatlng
 					if not curlatlng.equals @getCenter()
 						curlatlng.changed = true
@@ -225,14 +225,13 @@ hash = (str1, str2) ->
 if localStorage.places?
 	pls = JSON.parse localStorage.places
 	c = 0
-	for ref, types of pls
-		do (ref, types) ->
+	for id, o of pls
+		do (id, o) ->
 			c++
-			map.plcsvc.getDetails (reference: ref), (p, status) ->
+			map.plcsvc.getDetails (reference: o.ref), (p, status) ->
 				if status is google.maps.places.PlacesServiceStatus.OK
 					pp =
 						gid: p.id
-						gref: ref
 						name: p.name
 						location:
 							lat: p.geometry.location.lat()
@@ -243,14 +242,14 @@ if localStorage.places?
 						website: if p.website? then (p.website.replace /^http:\/\//, '') else p.url.replace /^.*cid=(\d+).*$/, 'place:$1'
 						rating: if p.rating? then p.rating else null
 						gtypes: p.types.join ','
-						svctypes: types
+						svctypes: o.t
 					console.log p, status, pp
 					svc 'place',
 						method: 'add'
 						data: place: pp
 	console.log c
 return
-# -------------------- ###
+# --------------------###
 #  ========== local db ==========
 if window.openDatabase?
 	app.db = openDatabase("KnightRider", "1.0", "Data cache for Knight Rider", 200000);
@@ -273,49 +272,31 @@ if window.openDatabase?
 							console.log 'sync', svc_name, data
 							callback? data
 			@ # end of sync
-		sync_place = -> # sync
-			return if app.offline()
-			app.db.sync 'place', (data) ->
-				if data.length then app.db.transaction (tx) ->
-					ids = data.map (p) -> p.id
-					vals = data.map (p) -> [
-						p.id
-						p.gid
-						p.name
-						p.location.lat
-						p.location.lng
-						p.vicinity
-						p.fulladdr
-						p.phone
-						p.website
-						p.rating
-						p.gtypes
-						p.svctypes
-						p.status
-						date_svc.dateFromWcfToStr(p.created)
-						date_svc.dateFromWcfToStr(p.modified)
-					]
-					sql = "INSERT INTO [Place](id,gid,name,lat,lng,vicinity,fulladdr,phone,website,rating,gtypes,svctypes,status,created,modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" # insert new rows
-					console.log 'db', sql, vals
-					tx.executeSql "DELETE FROM [Place] WHERE id IN (#{ids.join(',')})" # delete old
-					vals.forEach (val) -> tx.executeSql sql, val, null, app.db._onerr
-					tx.executeSql "UPDATE [Place] SET modified=DATETIME('now') WHERE id=0" # update last
+		load_values = (rows, trans) ->
+			rs = []
+			i = rows.length
+			while i
+				row = $.extend {}, rows.item --i
+				row.created = new Date row.created
+				row.modified = new Date row.modified
+				trans? row
+				rs.unshift row
+			rs
+		load_places = (rows) ->
+			load_values rows, (row) ->
+				row.canappt = /true/i.test row.canappt
+				row.location = lat: row.lat, lng: row.lng
+		load_alerts = (tx) ->
+			tx.executeSql "SELECT * FROM [Alerts] WHERE status=1 and expired > DATETIME('now') ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
+				console.log 'alerts count', ret.rows.length
+				rows = load_values ret.rows, (row) ->
+					row.created = new Date row.created
+					row.modified = new Date row.modified
+				console.log 'alerts from db', rows, ret
+				callback? rows, 'alerts'
+			), app.db._onerr
+			@ # end of load alerts
 		sync_alerts = (callback) ->
-			load_alerts = (tx) ->
-				tx.executeSql "SELECT * FROM [Alerts] WHERE status=1 and expired > DATETIME('now') ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
-					console.log 'alerts count', ret.rows.length
-					rows = []
-					i = ret.rows.length
-					while i
-						row = $.extend {}, ret.rows.item --i
-						row.datetime = new Date row.datetime
-						row.expired = new Date row.expired
-						row.created = new Date row.created
-						row.modified = new Date row.modified
-						rows.unshift row
-					console.log 'alerts from db', rows, ret
-					callback? rows, 'alerts'
-				), app.db._onerr
 			if app.offline()
 				app.db.transaction load_alerts
 			else app.db.sync 'alerts', (data) ->
@@ -344,12 +325,58 @@ if window.openDatabase?
 					@ # end of transaction
 				@ # end of sync
 			@ # end of alerts sync
+		sync_place = -> # sync
+			return if app.offline()
+			app.db.sync 'place', (data) ->
+				if data.length then app.db.transaction (tx) ->
+					ids = data.map (p) -> p.id
+					vals = data.map (p) -> [
+						p.id
+						p.gid
+						p.name
+						p.location.lat
+						p.location.lng
+						p.vicinity
+						p.fulladdr
+						p.phone
+						p.email
+						p.website
+						p.rating
+						p.gtypes
+						p.svctypes
+						p.openhours
+						p.canappt
+						p.status
+						date_svc.dateFromWcfToStr(p.created)
+						date_svc.dateFromWcfToStr(p.modified)
+					]
+					sql = "INSERT INTO [Place](id,gid,name,lat,lng,vicinity,fulladdr,phone,email,website,rating,gtypes,svctypes,openhours,canappt,status,created,modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" # insert new rows
+					console.log 'db', sql, vals
+					tx.executeSql "DELETE FROM [Place] WHERE id IN (#{ids.join(',')})" # delete old
+					vals.forEach (val) -> tx.executeSql sql, val, null, app.db._onerr
+					tx.executeSql "UPDATE [Place] SET modified=DATETIME('now') WHERE id=0" # update last
+		app.db.query_place = (svct, callback) ->
+			app.db.transaction (tx) -> tx.executeSql "SELECT * FROM [Place] WHERE status<>0 and svctypes&#{svct}<>0;", [], ((tx, ret) ->
+				console.log 'place query count', ret.rows.length
+				rows = load_places ret.rows
+				console.log 'place from db', rows, ret
+				callback? rows
+			), app.db._onerr
+			@ # end of query place
+		app.db.get_place = (gids, callback) ->
+			gids = [gids] if not $.isArray gids
+			app.db.transaction (tx) -> tx.executeSql "SELECT * FROM [Place] WHERE gid in ('#{gids.join '\',\''}');", [], ((tx, ret) ->
+				rows = load_places ret.rows
+				callback? rows
+			), app.db._onerr
+			@ # end of query place
 		app.db.sync_all = (callback) ->
 			console.log 'sync all'
 			sync_place()
 			sync_alerts(callback)
 		# create table
 		app.db.transaction (tx) ->
+			console.log 'init tables'
 			tx.executeSql "CREATE TABLE IF NOT EXISTS [Alerts] (
 				id int not null primary key, 
 				summary nvarchar(100) not null, 
@@ -362,6 +389,7 @@ if window.openDatabase?
 				created datetime DEFAULT CURRENT_TIMESTAMP, 
 				modified datetime not null
 			);"
+			console.log 'init alerts'
 			tx.executeSql "CREATE INDEX IF NOT EXISTS [Alerts_ODR] ON [Alerts] (datetime DESC, importance DESC);"
 			tx.executeSql "INSERT INTO [Alerts](id,summary,importance,type,status,modified) SELECT 0,'LastUpdate',0,0,0,DATETIME(0,'unixepoch') WHERE NOT EXISTS(SELECT * FROM [Alerts] WHERE id=0);"
 			tx.executeSql "CREATE TABLE IF NOT EXISTS [Place] (
@@ -373,17 +401,22 @@ if window.openDatabase?
 				vicinity nvarchar(200),
 				fulladdr nvarchar(1000),
 				phone varchar(15),
+				email varchar(100),
 				website varchar(100),
 				rating tinyint,
 				gtypes varchar(100),
 				svctypes tinyint not null,
+				openhours text,
+				canappt bit not null,
 				status tinyint not null,
 				created datetime DEFAULT CURRENT_TIMESTAMP,
 				modified datetime not null
 			);"
-			tx.executeSql "CREATE INDEX IF NOT EXISTS [Place_GID] ON [Place] (GID);"
+			console.log 'init place'
+			tx.executeSql "CREATE UNIQUE INDEX IF NOT EXISTS [Place_GID] ON [Place] (GID);"
 			tx.executeSql "CREATE INDEX IF NOT EXISTS [Place_TYP] ON [Place] (svctypes);"
-			tx.executeSql "INSERT INTO [Place](id,name,svctypes,status,modified) SELECT 0,'LastUpdate',0,0,DATETIME(0,'unixepoch') WHERE NOT EXISTS(SELECT * FROM [Place] WHERE id=0);"
+			tx.executeSql "INSERT INTO [Place](id,name,canappt,svctypes,status,modified) SELECT 0,'LastUpdate',0,0,0,DATETIME(0,'unixepoch') WHERE NOT EXISTS(SELECT * FROM [Place] WHERE id=0);"
+			console.log 'finish init tables'
 	else alert 'open db err'
 
 # ========== pages ==========
@@ -573,25 +606,28 @@ app.place_search_history_refresh = ->
 	$('#search_history_list li:gt(0)').remove() # remove all except custom_history_list_header
 	l = '<li data-role="list-divider" class="ui-body-c list-none">(None)</li>'
 	l = app.user.place_search_history.map((r, i) ->
-		"<li><a href=\"#detail\" data-btn-role=\"result\" data-index=\"#{i}\"><img src=\"#{r.icon}\" class=\"ui-li-icon\">
+		img = if r.icon? and not app.offline() then "<img src=\"#{r.icon}\" class=\"ui-li-icon\"/>" else ''
+		"<li><a href=\"#detail\" data-btn-role=\"result\" data-index=\"#{i}\">#{img}
 <h3 class=\"ui-li-heading\">#{r.name}</h3><p class=\"ui-li-desc\">#{r.vicinity}</p></li>"
 	).join '' if app.user.place_search_history?.length
 	$('#search_history_list_header').after l
 
 # custom search page
-$('#custom_search').bind pagecreate: ->
-	@created = true
-	app.custom_search_history_refresh() # for the 1st show
-	if not app.offline() then new google.maps.places.Autocomplete $('#input_search')[0],
-		bounds: map.svbounds
-		types: ['establishment']
+$('#custom_search').bind
+	pagecreate: ->
+		@created = true
+		app.custom_search_history_refresh() # for the 1st show
+		if not app.offline() then new google.maps.places.Autocomplete $('#input_search')[0],
+			bounds: map.svbounds
+			types: ['establishment']
+	pagebeforeshow: ->
+		app.back() if app.offline()
 $('#custom_search').bind 'pageshow pagebeforeshow', -> $('#custom_history_list').listview 'refresh' if @created
 $('#custom_search_form').submit ->
 	input = $('#input_search')
 	keyword = $.trim input.val()
 	if keyword
 		app.search_keyword = new String(keyword)
-		app.search_keyword.custom = true
 		$.mobile.changePage '#result'
 		console.log 'vclick', app.search_keyword
 	else input.focus().val ''
@@ -613,18 +649,53 @@ place_svc_typs =
 
 # result page
 $('#result').bind
+	pagecreate: ->
+		result_list = $('#result_list')
+		result_list.height document.body.clientHeight - result_list.offset().top
+		@ # end of create
 	pagebeforeshow: ->
 		console.log 'search for', app.search_keyword
 		if not app.search_keyword
-			app.back(); return
+			app.back()
+			return
 		$.mobile.showPageLoadingMsg()
+		sort_results = (results, cur) ->
+			app.result_map = {} # for detail
+			console.log 'sort', results, cur
+			results.forEach (r) ->
+				app.result_map[r.gid] = r # for detail
+				dlng = r.location.lng - cur.lng
+				dlat = r.location.lat - cur.lat
+				r.dist = Math.pow(dlng, 2) + Math.pow(dlat, 2)
+			results.sort (a, b) -> a.dist - b.dist
+			return results.slice 0, 25 # only A-Z
 		#@map.keyword = null # init app.result.keyword
 		#app.result.keyword = app.search_keyword
 		# clear old results
 		result_list = $('#result_list').empty()
+		thispage = $ @
 		# create new results
 		if app.offline()
-			$('#result_addr').text 'You are offline now'
+			if not place_svc_typs[app.search_keyword]?
+				alert 'You are offline now.\nCustom Search is disabled'
+			else app.db.query_place place_svc_typs[app.search_keyword], (results) ->
+				show_ret = (pos) ->
+					# sort results
+					if pos? then results = sort_results results,
+						lat: pos.coords.latitude
+						lng: pos.coords.longitude
+					else thispage.one pageshow: -> alert 'Cannot get your current location while offline.\nThe results is unsorted and maybe not nearby.\nIn another word, the 1st result does not means the nearest.\nYou need select the place by yourself.'
+					$('#result_addr').text "[Offline] #{app.search_keyword} (#{results.length})"
+					# add to list in order
+					result_list.append results.map((r, i) ->
+						seq = if pos? then "<div style=\"float:left\">#{String.fromCharCode 65 + i}</div>" else ''
+						console.log seq, pos
+						"<li><a href=\"#detail\" data-btn-role=\"result\" id=\"#{r.gid}\">#{seq}<h3 class=\"ui-li-heading\">#{r.name}</h3><p class=\"ui-li-desc\">#{r.vicinity}</p></li>"
+					).join ''
+					result_list.listview 'refresh'
+					@ # end of show ret
+				navigator.geolocation.getCurrentPosition ((pos) -> show_ret pos), (-> show_ret(app.map?.lastlatlng)) if navigator.geolocation?
+				@ # end of query place
 		else map.getCurPos (curlatlng, addr) ->
 			@setZoom 12
 			#@move 'result'
@@ -640,41 +711,37 @@ $('#result').bind
 						alert 'Zero Result'
 						app.back()
 					else if status is google.maps.places.PlacesServiceStatus.OK
-						$('#result_addr').text "#{app.search_keyword} (#{results.length})"
-						result_list.height document.body.clientHeight - result_list.offset().top
+						results.forEach (r) ->
+							r.gid = r.id
+							r.location = lat: r.geometry.location.lat(), lng: r.geometry.location.lng()
 						# ----- dev only -----
-						console.log 'search result', results
+						###console.log 'search result', results
 						pls = if localStorage.places? then JSON.parse(localStorage.places) else {}
 						results.forEach (r) ->
 							if pls[r.id]?
-								pls[r.reference] |= place_svc_typs[app.search_keyword]
+								pls[r.id].ref |= place_svc_typs[app.search_keyword]
 							else
-								pls[r.reference] = place_svc_typs[app.search_keyword]
-						localStorage.places = JSON.stringify pls
+								pls[r.id] = {t:place_svc_typs[app.search_keyword],ref:r.reference}
+						localStorage.places = JSON.stringify pls###
 						# --------------------
 						# sort results
-						app.result_map = {}
-						results.forEach (r) ->
-							app.result_map[r.id] = r
-							r = r.geometry
-							dlng = r.location.lng() - curlatlng.lng()
-							dlat = r.location.lat() - curlatlng.lat()
-							r.dist = Math.pow(dlng, 2) + Math.pow(dlat, 2)
-						results.sort (a, b) -> a.geometry.dist - b.geometry.dist
-						results = results.slice 0, 25 # only A-Z
+						results = sort_results results,
+							lat: curlatlng.lat()
+							lng: curlatlng.lng()
+						$('#result_addr').text "#{app.search_keyword} (#{results.length})"
 						# add to list in order
 						result_list.append results.map((r, i) ->
 							r.seq = String.fromCharCode 65 + i # from A
 							"<li><a href=\"#detail\" data-btn-role=\"result\" id=\"#{r.id}\">
-<div style=\"float:left\">#{r.seq}</div><img src=\"#{r.icon?.replace /^http:/, ''}\" class=\"ui-li-icon\">
+<div style=\"float:left\">#{r.seq}</div><img src=\"#{r.icon?.replace /^http:/, ''}\" class=\"ui-li-icon\"/>
 <h3 class=\"ui-li-heading\">#{r.name}</h3><p class=\"ui-li-desc\">#{r.vicinity}</p></li>"
 						).join ''
+						result_list.listview 'refresh'
 						# show marking in rev order
 						markers = results.reverse().map (result) ->
 							position: result.geometry.location
 							icon: "//www.google.com/mapfiles/marker#{result.seq}.png"
 							title: result.name
-						result_list.listview 'refresh'
 						# add marker
 						markers.push
 							position: curlatlng
@@ -683,7 +750,7 @@ $('#result').bind
 						# set markers to map
 						map.setMarkers markers
 						# save custom search history
-						if app.search_keyword.custom
+						if not place_svc_typs[app.search_keyword]?
 							hs = app.user.custom_search_history ?= []
 							if hs.length is 0 or hs[0] isnt app.search_keyword
 								hs.unshift app.search_keyword
@@ -718,11 +785,14 @@ $('#detail').bind
 		if not app.selected_place
 			app.back()
 			return
-		$('[data-role="navbar"] a', @)[if app.offline() then 'addClass' else 'removeClass'] 'ui-disabled'
 		show_detail = (place) ->
-			map.setCenter place.geometry.location
-			map.setMarkers position: place.geometry.location
-			map.setZoom 15
+			console.log 'show detail', place
+			$('[data-role="navbar"] a', @)[if app.offline() then 'addClass' else 'removeClass'] 'ui-disabled'
+			$('#btn_appt')[if not place.canappt then 'addClass' else 'removeClass'] 'ui-disabled'
+			if app.map?
+				map.setCenter place.geometry.location
+				map.setMarkers position: place.geometry.location
+				map.setZoom 15
 			$('#detail_place').text place.name
 			ln_type = 'Visit its Website'
 			if place.website?
@@ -735,10 +805,12 @@ $('#detail').bind
 				place.website = place.url
 				ln_type = 'View on Google Place'
 			detial_info.html "<ul>
-<li>#{place.formatted_address}</li><li>#{place.formatted_phone_number}</li>
-<li>#{place.types.join(', ').replace(/_/g, ' ').toUpperCase()}</li>
+<li>#{place.fulladdr}</li><li>#{place.phone}</li>
+<li>#{place.gtypes.replace(/_/g, ' ').toUpperCase()}</li>
 <li>#{if place.rating? then proc_rating(place.rating) else '(No Rating Yet)' }</li>
-<li><a href=\"#{place.website}\" target=\"_blank\">#{ln_type}</a></li></ul>"
+<li><a href=\"#{place.website}\" target=\"_blank\">#{ln_type}</a></li>
+<li>This place #{if place.canappt then 'CAN' else 'CANNOT'} make Appointment</li>
+#{if app.offline() then '<li>You are offline now, neigher Appointment nor Direction is available!</li>' else ''}</ul>"
 			# save history
 			psh = app.user.place_search_history ?= []
 			if psh.length is 0 or psh[0].id isnt app.selected_place.id
@@ -748,7 +820,7 @@ $('#detail').bind
 						return true
 					false
 				psh.unshift
-					id: place.id
+					gid: place.gid
 					reference: app.selected_place.reference
 					name: place.name
 					vicinity: place.vicinity
@@ -756,14 +828,28 @@ $('#detail').bind
 				app.place_search_history_refresh()
 			console.log place
 			@ # end of show detail
-		if app.selected_place.__detail
-			show_detail app.selected_place.__detail
-		else if app.offline()
-			alert 'todo: offline mode'
-		else map.plcsvc.getDetails (reference: app.selected_place.reference), (place, status) ->
-			if status is google.maps.places.PlacesServiceStatus.OK
-				app.selected_place.__detail = place
-				show_detail place
+		sel_p = app.selected_place
+		if sel_p.gtypes?
+			show_detail sel_p
+		else app.db.get_place sel_p.id, (p) ->
+			if p.length
+				p = p[0]
+				$.extend sel_p, p
+				show_detail sel_p
+			else if not app.offline()
+				map.plcsvc.getDetails (reference: sel_p.reference), (p, status) ->
+					if status is google.maps.places.PlacesServiceStatus.OK
+						sel_p.gid = p.id
+						sel_p.fulladdr = p.formatted_address
+						sel_p.phone = p.formatted_phone_number
+						sel_p.gtypes = p.types.join ','
+						sel_p.phone = p.phone
+						sel_p.website = p.website
+						sel_p.rating = p.rating
+						sel_p.canappt = false
+						show_detail sel_p
+					else alert 'Get Details Failed'
+			else alert 'You are offline now, and there is no this place\'s data on local database'
 		@ # end of show
 
 # direction page
@@ -794,4 +880,4 @@ $('#direction').bind
 		#@auto = clearInterval @auto
 		map.dirrdr.setMap null
 #  ========== end ==========
-console.log 'Wilson', 7 # jsmin app.js && rm app.js && mv app.min.js app.js
+console.log 'Wilson', 8 # jsmin app.js && rm app.js && mv app.min.js app.js

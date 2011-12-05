@@ -1,7 +1,7 @@
 USE [KnightRider]
 GO
 
-/****** Object:  Table [dbo].[Place]    Script Date: 12/04/2011 00:44:17 ******/
+/****** Object:  Table [dbo].[Place]    Script Date: 12/04/2011 17:28:30 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -14,7 +14,6 @@ GO
 CREATE TABLE [dbo].[Place](
 	[ID] [int] IDENTITY(1,1) NOT NULL,
 	[GID] [char](40) NOT NULL,
-	[GReference] [varchar](300) NOT NULL,
 	[GTypes] [varchar](100) NOT NULL,
 	[Name] [nvarchar](100) NOT NULL,
 	[Latitude] [float] NOT NULL,
@@ -22,8 +21,11 @@ CREATE TABLE [dbo].[Place](
 	[Vicinity] [nvarchar](200) NOT NULL,
 	[FullAddress] [nvarchar](1000) NOT NULL,
 	[Phone] [varchar](15) NULL,
+	[Email] [varchar](100) NULL,
 	[Website] [varchar](100) NULL,
 	[Rating] [float] NULL,
+	[OpenHours] [text] NULL,
+	[CanAppointment] [bit] NOT NULL,
 	[SvcTypes] [tinyint] NOT NULL,
 	[Status] [tinyint] NOT NULL,
 	[ExtraData] [text] NULL,
@@ -37,6 +39,11 @@ CREATE TABLE [dbo].[Place](
 
 GO
 
+CREATE UNIQUE NONCLUSTERED INDEX IX_Place_GID ON dbo.Place
+	(
+	GID
+	) WITH( STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+GO
 SET ANSI_PADDING OFF
 GO
 
@@ -48,4 +55,5 @@ GO
 
 ALTER TABLE [dbo].[Place] ADD  CONSTRAINT [DF_Place_Status]  DEFAULT ((0)) FOR [Status]
 GO
+
 
