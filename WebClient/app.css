@@ -74,7 +74,7 @@ a[data-btn-role="result"] img {
 #result_list {
 	margin: 0;
 	overflow: hidden;
-	overflow-y: auto;
+	overflow-y: scroll;
 }
 #weather {
 	height: 40px;

@@ -29,6 +29,7 @@ CACHE:
 
 #internal HTML documents
 index.html
+emulator.html
 
 #style sheets
 lib/jquery.mobile-1.0.min.css
