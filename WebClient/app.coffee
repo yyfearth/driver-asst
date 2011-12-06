@@ -16,6 +16,21 @@ check_online = ->
 check_online() # 10s
 $(document.body).addClass 'offline' if app.offline()
 # ========== svc ========== 
+xss_safe = 
+	remove_regex: /on\w{1,20}?=|javascript:/ig # prevent attr injection
+	replace_regex: /<|>/g # prevent html esp script
+	replace_dict:
+		'>': '&gt;'
+		'<': '&lt;'
+	str: (str) -> # str should be a string
+		str = str.toString()
+			.replace @remove_regex, ''
+			.replace @replace_regex, (p) -> @replace_dict[p]
+	json: (json, parse) -> # str is string or json obj, parse = true if need to parse json obj back
+		is_str = typeof json is 'string'
+		json = JSON.stringify json if not is_str
+		json = @str json
+		if is_str or not parse then json else JSON.parse json
 svc = (svc, cfg) ->
 	if svc.svc? and not cfg?
 		cfg = svc
@@ -23,21 +38,28 @@ svc = (svc, cfg) ->
 	else if typeof svc is 'string'
 		cfg.svc = svc
 	cfg.type = if cfg.type? and /get/i.test(cfg.type) then 'GET' else 'POST'
-	cfg.data = JSON.stringify cfg.data if cfg.type is 'POST'
 	cfg.background = true if cfg.nowait
+	if cfg.type is 'POST'
+		cfg.data = xss_safe.json cfg.data # return json str
+	console.log cfg.data
 	# start
 	$.mobile.showPageLoadingMsg() if not cfg.background
-	$.ajax
+	$.ajax # ajax call
 		url: "svc/#{cfg.svc}.svc/#{cfg.method}"
 		type: cfg.type
 		dataType: 'json'
 		contentType: 'application/json;charset=utf-8'
 		data: cfg.data
 		processdata: cfg.type isnt 'POST'
+		dataFilter: (data, type) -> # safe
+			console.log 'data form ajax', type, data
+			return xss_safe.str data
 		complete: if cfg.background then null else (xhr) ->
+			console.log 'ajax returned'
 			$.mobile.hidePageLoadingMsg()
 			cfg.complete?()
 		success: if cfg.nowait then null else (data, txt, xhr) ->
+			console.log 'ajax success', data
 			if data? and 'd' of data
 				cfg.callback? data.d
 			else
@@ -47,6 +69,15 @@ svc = (svc, cfg) ->
 			alert 'Network Error'
 			console.log 'err', xhr, xhr.statusText
 	return false;
+weather_svc = (callback) ->
+	$.ajax # ajax call
+		url:'gapi?&hl=en-us&weather=san+jose,ca'
+		dataType: 'json'
+		dataFilter: (data, type) -> # safe
+			xss_safe.json JSON.stringify xml2json data # return json str, jq xhr will parse it auto
+		success: (j, xhr) ->
+			callback j
+		error: (xhr) -> console.log 'get weather failed', xhr
 date_svc =
 	fmt: (d) -> if d > 9 then d.toString() else '0' + d
 	dateToWcf: (dt) ->
@@ -56,17 +87,19 @@ date_svc =
 		m = str.match /^\/Date\((\d+)([+-]\d{2})(\d{2})\)\/$/
 		return null if m.length isnt 4
 		ts = Number m[1]
-		new Date(ts) # ts is local already
+		new Date ts # ts is local already
 		#h = Number m[2]
 		#console.log 'wcf to date', str, ts, h, new Date(ts - h * 3600000)
 		#new Date(ts - h * 3600000)
+	dateFromStr: (dt) ->
+		new Date dt.replace /-/g, '/'
 	dateToStr: (dt) ->
-		dt = new Date(dt)
+		dt = new Date dt
 		"#{dt.getFullYear()}-#{@fmt(dt.getMonth()+1)}-#{@fmt dt.getDate()} #{@fmt dt.getHours()}:#{@fmt dt.getMinutes()}:#{@fmt dt.getSeconds()}"
 	dateFromWcfToStr: (str) ->
 		@dateToStr @dateFromWcf str
 	dateToUTC: (dt) ->
-		dt = new Date(dt)
+		dt = new Date dt
 		"#{dt.getUTCFullYear()}-#{@fmt(dt.getUTCMonth()+1)}-#{@fmt dt.getUTCDate()}T#{@fmt dt.getUTCHours()}:#{@fmt dt.getUTCMinutes()}:#{@fmt dt.getUTCSeconds()}"
 
 # ========== profile ==========
@@ -97,6 +130,12 @@ app.save_profile = window.onbeforeunload = ->
 		localStorage.removeItem 'user'
 		sessionStorage.removeItem 'user'
 	return #"Sure to leave Knight Rider?"
+app.reset = ->
+	app.db.reset()
+	app.user = null
+	app.save_profile()
+	window.onbeforeunload = $.noop
+	location.reload()
 # ========== map ==========
 # add back and home button to every page except home
 $('[data-role="page"] [data-role="header"]:not(.ui-non-nav)').append $('[data-btn-role="back"],[data-btn-role="home"]')
@@ -208,14 +247,9 @@ app.sync_weather = ->
 		else
 			$('#weather').html '(No Weather Data)'
 		@ # end
-	if not app.offline() then $.ajax
-		url:'gapi?&hl=en-us&weather=san+jose,ca'
-		dataType: 'xml'
-		success: (xml, xhr) ->
-			j = xml2json(xml)
-			localStorage.weather = JSON.stringify j
-			ref_w j
-		error: (xhr) -> console.log 'get weather failed', xhr
+	if not app.offline() then weather_svc (j, xhr) ->
+		localStorage.weather = JSON.stringify j
+		ref_w j
 	else if localStorage.weather?
 		ref_w JSON.parse localStorage.weather
 	else ref_w null
@@ -260,6 +294,9 @@ if window.openDatabase?
 	app.db = openDatabase("KnightRider", "1.0", "Data cache for Knight Rider", 200000);
 	if app.db?
 		app.db._onerr = (t, e) -> console.error 'local db error', t, e
+		app.db.reset = -> app.db.transaction (tx) ->
+			tx.executeSql "DROP TABLE IF EXISTS Alerts;"
+			tx.executeSql "DROP TABLE IF EXISTS Place;"
 		app.db.sync = (svc_name, callback) ->
 			console.log 'sync', svc_name
 			svc_name = svc_name.toLowerCase()
@@ -272,7 +309,7 @@ if window.openDatabase?
 						type: 'get'
 						background: true
 						data:
-							last: date_svc.dateToStr last.modified
+							last: date_svc.dateToStr last.modified.replace /-/g, '/'
 						callback: (data) ->
 							console.log 'sync', svc_name, data
 							callback? data
@@ -282,8 +319,8 @@ if window.openDatabase?
 			i = rows.length
 			while i
 				row = $.extend {}, rows.item --i
-				row.created = new Date row.created
-				row.modified = new Date row.modified
+				row.created = new Date row.created.replace /-/g, '/'
+				row.modified = new Date row.modified.replace /-/g, '/'
 				trans? row
 				rs.unshift row
 			rs
@@ -292,11 +329,12 @@ if window.openDatabase?
 				row.canappt = /true/i.test row.canappt
 				row.location = lat: row.lat, lng: row.lng
 		load_alerts = (tx, callback) ->
-			tx.executeSql "SELECT * FROM [Alerts] WHERE status=1 and expired > DATETIME('now','localtime') ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
+			tx.executeSql "SELECT * FROM [Alerts] WHERE status=1 and expired > DATETIME('now','localtime')
+ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
 				#console.log 'alerts count', ret.rows.length
 				rows = load_values ret.rows, (row) ->
-					row.datetime = new Date row.datetime
-					row.expired = new Date row.expired
+					row.datetime = new Date row.datetime.replace /-/g, '/'
+					row.expired = new Date row.expired.replace /-/g, '/'
 				console.log 'alerts from db', rows, ret
 				callback? rows, 'alerts'
 			), app.db._onerr
@@ -355,7 +393,8 @@ if window.openDatabase?
 						date_svc.dateFromWcfToStr(p.created)
 						date_svc.dateFromWcfToStr(p.modified)
 					]
-					sql = "INSERT INTO [Place](id,gid,name,lat,lng,vicinity,fulladdr,phone,email,website,rating,gtypes,svctypes,openhours,canappt,status,created,modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" # insert new rows
+					sql = "INSERT INTO [Place](id,gid,name,lat,lng,vicinity,fulladdr,phone,email,website,rating,gtypes,svctypes,openhours,canappt,status,created,modified)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" # insert new rows
 					console.log 'db', sql, vals
 					tx.executeSql "DELETE FROM [Place] WHERE id IN (#{ids.join(',')})" # delete old
 					vals.forEach (val) -> tx.executeSql sql, val, null, app.db._onerr
@@ -392,7 +431,9 @@ if window.openDatabase?
 			);"
 			#console.log 'init alerts'
 			tx.executeSql "CREATE INDEX IF NOT EXISTS [Alerts_ODR] ON [Alerts] (datetime DESC, importance DESC);"
-			tx.executeSql "INSERT INTO [Alerts](id,summary,importance,type,status,created,modified) SELECT 0,'LastUpdate',0,0,0,DATETIME('now','localtime'),DATETIME(0,'unixepoch','localtime') WHERE NOT EXISTS(SELECT * FROM [Alerts] WHERE id=0);"
+			tx.executeSql "INSERT INTO [Alerts](id,summary,importance,type,status,created,modified)
+SELECT 0,'LastUpdate',0,0,0,DATETIME('now','localtime'),DATETIME(0,'unixepoch','localtime')
+WHERE NOT EXISTS(SELECT * FROM [Alerts] WHERE id=0);"
 			tx.executeSql "CREATE TABLE IF NOT EXISTS [Place] (
 				id int not null primary key, 
 				gid char(40),
@@ -416,7 +457,9 @@ if window.openDatabase?
 			#console.log 'init place'
 			tx.executeSql "CREATE UNIQUE INDEX IF NOT EXISTS [Place_GID] ON [Place] (GID);"
 			tx.executeSql "CREATE INDEX IF NOT EXISTS [Place_TYP] ON [Place] (svctypes);"
-			tx.executeSql "INSERT INTO [Place](id,name,canappt,svctypes,status,created,modified) SELECT 0,'LastUpdate',0,0,0,DATETIME('now','localtime'),DATETIME(0,'unixepoch','localtime') WHERE NOT EXISTS(SELECT * FROM [Place] WHERE id=0);"
+			tx.executeSql "INSERT INTO [Place](id,name,canappt,svctypes,status,created,modified)
+SELECT 0,'LastUpdate',0,0,0,DATETIME('now','localtime'),DATETIME(0,'unixepoch','localtime')
+WHERE NOT EXISTS(SELECT * FROM [Place] WHERE id=0);"
 			#console.log 'finish init tables'
 	else alert 'open db err'
 
@@ -445,7 +488,8 @@ $('#home').bind
 			alert_el = $('#alerts').empty()
 			html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>'
 			html = "<li data-role=\"list-divider\" class=\"ui-body-c list-none\">#{alerts.length} Alerts</li>" + alerts.map((a) ->
-				"<li><a href=\"javascript:alert('Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
+				"<li><a href=\"javascript:alert('Summary: #{a.summary}\\nMessage: #{a.message}\\n
+From: #{a.datetime}\\nExpire: #{a.expired}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
 			).join '' if alerts.length > 0
 			$('#alerts').html(html).listview().listview 'refresh'
 		#@auto = setInterval (->
@@ -502,11 +546,11 @@ $('#login').bind
 	pageshow: ->
 		$('#password').val ''
 		$('#login_form_warp').show()
-		console.log 'logout', app.user
 		if not app.offline()
 			$('button', @).button 'enable'
 			$('#btn_reg').removeClass 'ui-disabled'
 			return if not app.user?
+			console.log 'logout', app.user
 			svc 'user',
 				method: 'logout'
 				nowait: true
@@ -687,13 +731,16 @@ $('#result').bind
 					if pos? then results = sort_results results,
 						lat: pos.coords.latitude
 						lng: pos.coords.longitude
-					else thispage.one pageshow: -> alert 'Cannot get your current location while offline.\nThe results is unsorted and maybe not nearby.\nIn another word, the 1st result does not means the nearest.\nYou need select the place by yourself.'
+					else thispage.one pageshow: -> alert 'Cannot get your current location while offline.\n
+The results is unsorted and maybe not nearby.\nIn another word, the 1st result does not means the nearest.\n
+You need select the place by yourself.'
 					$('#result_addr').text "[Offline] #{app.search_keyword} (#{results.length})"
 					# add to list in order
 					result_list.append results.map((r, i) ->
 						seq = if pos? then "<div style=\"float:left\">#{String.fromCharCode 65 + i}</div>" else ''
 						#console.log seq, pos
-						"<li><a href=\"#detail\" data-btn-role=\"result\" id=\"#{r.gid}\">#{seq}<h3 class=\"ui-li-heading\">#{r.name}</h3><p class=\"ui-li-desc\">#{r.vicinity}</p></li>"
+						"<li><a href=\"#detail\" data-btn-role=\"result\" id=\"#{r.gid}\">
+#{seq}<h3 class=\"ui-li-heading\">#{r.name}</h3><p class=\"ui-li-desc\">#{r.vicinity}</p></li>"
 					).join ''
 					result_list.listview 'refresh'
 					@ # end of show ret
@@ -788,7 +835,7 @@ $('#detail').bind
 		if not app.selected_place
 			app.back()
 			return
-		$('[data-role="navbar"] a', @)[if app.offline() then 'addClass' else 'removeClass'] 'ui-disabled'
+		$('[data-role="navbar"]', @)[if app.offline() then 'hide' else 'show']()
 		show_detail = (place) ->
 			console.log 'show detail', place
 			$('#btn_appt')[if not place.canappt then 'addClass' else 'removeClass'] 'ui-disabled' if not app.offline()
@@ -891,4 +938,4 @@ $('#direction').bind
 		#@auto = clearInterval @auto
 		map.dirrdr.setMap null
 #  ========== end ==========
-console.log 'Wilson', 8 # jsmin app.js && rm app.js && mv app.min.js app.js
+console.log 9, 'Wilson' # jsmin app.js && rm app.js && mv app.min.js app.js
