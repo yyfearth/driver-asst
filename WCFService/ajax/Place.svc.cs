@@ -9,7 +9,6 @@ using System.Text;
 
 namespace KnightRider {
 	[ServiceContract(Namespace = "")]
-	[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
 	public class Place {
 		//private static DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local); // or Utc
 		[OperationContract, WebGet]

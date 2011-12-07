@@ -9,7 +9,6 @@ using System.Text;
 
 namespace KnightRider {
 	[ServiceContract(Namespace = "")]
-	[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
 	public class Appointment {
 		[OperationContract]
 		[WebInvoke(Method = "POST", BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]

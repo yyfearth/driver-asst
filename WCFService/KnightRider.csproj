@@ -57,7 +57,6 @@
     <Content Include="ajax\Appointment.svc" />
     <Content Include="ajax\Place.svc" />
     <Content Include="ajax\User.svc" />
-    <Content Include="Service.svc" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -68,6 +67,7 @@
       <DependentUpon>Web.config</DependentUpon>
     </Content>
     <Content Include="index.aspx" />
+    <Content Include="WP7Service.svc" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ajax\Alerts.svc.cs">
@@ -92,8 +92,8 @@
     <Compile Include="index.aspx.designer.cs">
       <DependentUpon>index.aspx</DependentUpon>
     </Compile>
-    <Compile Include="Service.svc.cs">
-      <DependentUpon>Service.svc</DependentUpon>
+    <Compile Include="WP7Service.svc.cs">
+      <DependentUpon>WP7Service.svc</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>

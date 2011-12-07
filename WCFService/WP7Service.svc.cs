@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.ServiceModel;
-using System.Text;
+using System.ServiceModel.Activation;
 
 namespace KnightRider {
-	// NOTE: You can use the "Rename" command on the "Refactor" menu to change the class name "Service" in code, svc and config file together.
-	public class Service {
-		[ServiceContract(Namespace = "")]
+	[ServiceContract(Namespace = "")]
+	[SilverlightFaultBehavior]
+	public class WP7Service {
 		[DataContract]
 		public class LoginResult {
 			[DataMember]
@@ -18,7 +17,7 @@ namespace KnightRider {
 		}
 
 		[OperationContract]
-		public LoginResult login(string email, string password) { // cacheable
+		public LoginResult Login(string email, string password) { // cacheable
 			try {
 				var userid = DataAccess.ValidateUser(email, password);
 				var sid = DataAccess.LoginUser(userid).ToString("N"); // return sid
@@ -31,14 +30,14 @@ namespace KnightRider {
 		}
 
 		[OperationContract]
-		public void logout(uint uid, string sid) { // cacheable
+		public void Logout(uint uid, string sid) { // cacheable
 			try {
 				DataAccess.LogoutUser(uid, sid);
 			} catch { }
 		}
 
 		[OperationContract]
-		public uint reg(UserJson user) { // cacheable
+		public uint Reg(UserJson user) { // cacheable
 			try {
 				return DataAccess.AddUser(user);
 			} catch (DataAccess.ConflictException) {
@@ -49,7 +48,7 @@ namespace KnightRider {
 		}
 
 		[OperationContract]
-		public bool check(uint uid, string sid) { // cacheable
+		public bool Check(uint uid, string sid) { // cacheable
 			try {
 				return DataAccess.ValidateLogin(uid, sid);
 			} catch {
@@ -58,28 +57,27 @@ namespace KnightRider {
 		}
 
 		[OperationContract]
-		public DataJson[] sync(string name, DateTime last) {
-			//DateTime lastdt = last > 0 ? origin.AddTicks(last) : new DateTime(0);
-			switch (name) {
-				case "alert":
-				case "alerts":
-					return DataAccess.SyncAlerts(last);
-				case "place":
-					return DataAccess.SyncPlace(last);
-				default:
-					throw new Exception("Invalid name");
-			}
+		public AlertJson[] SyncAlerts(DateTime last) {
+			return DataAccess.SyncAlerts(last);
 		}
 
 		[OperationContract]
-		public void add(string name, DataJson json) {
-			switch (name) {
-				case "appt":
-				case "appointment":
-					DataAccess.AddAppointment(json as AppointmentJson);
-					return;
-				default:
-					throw new Exception("Invalid name");
+		public PlaceJson[] SyncPlace(DateTime last) {
+			return DataAccess.SyncPlace(last);
+		}
+
+		[OperationContract]
+		public bool Appointment(AppointmentJson appt, string sid) {
+			try {
+				if (appt == null || appt.user == 0)
+					throw new Exception("bad req");
+				if (sid == null || sid == string.Empty ||
+					!DataAccess.ValidateLogin(appt.user, Guid.ParseExact(sid, "N")))
+					return false;
+				DataAccess.AddAppointment(appt);
+				return true;
+			} catch {
+				throw new FaultException("internal error", new FaultCode("error"));
 			}
 		}
 	}

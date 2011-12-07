@@ -15,7 +15,7 @@ CREATE TABLE [dbo].[Appointment](
 	[ID] [int] IDENTITY(1,1) NOT NULL,
 	[PlaceGID] [char](40) NOT NULL,
 	[UserID] [int] NOT NULL,
-	[ContactName] [nvarchar](30) NOT NULL,
+	[ContactName] [nvarchar](100) NOT NULL,
 	[ContactPhone] [varchar](15) NOT NULL,
 	[DateTime] [datetime] NOT NULL,
 	[Message] [text] NULL,

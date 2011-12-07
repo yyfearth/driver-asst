@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 
 namespace KnightRider {
 	[ServiceContract(Namespace = "")]
-	[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
 	public class User {
 		[DataContract]
 		public class LoginResult {

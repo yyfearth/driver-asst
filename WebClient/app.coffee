@@ -22,6 +22,8 @@ xss_safe =
 	replace_dict:
 		'>': '&gt;'
 		'<': '&lt;'
+	attr: (str) ->
+		str.replace /[\n'"]/g, '\\$0'
 	str: (str) -> # str should be a string
 		str = str.toString()
 			.replace @remove_regex, ''
@@ -488,7 +490,7 @@ $('#home').bind
 			alert_el = $('#alerts').empty()
 			html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>'
 			html = "<li data-role=\"list-divider\" class=\"ui-body-c list-none\">#{alerts.length} Alerts</li>" + alerts.map((a) ->
-				msg = "Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}".replace /'/g, "\\'"
+				msg = xss_safe.attr "Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}"
 				"<li><a href=\"javascript:alert('#{msg}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
 			).join '' if alerts.length > 0
 			$('#alerts').html(html).listview().listview 'refresh'
@@ -611,7 +613,7 @@ $('#appt_form').submit (e) ->
 	# validate hours
 	appt =
 		user: app.user.uid
-		place: app.selected_place.id
+		place: app.selected_place.gid
 		contact:
 			name: @name.value
 			phone: @phone.value
@@ -840,8 +842,9 @@ $('#detail').bind
 			console.log 'show detail', place
 			$('#btn_appt')[if not place.canappt then 'addClass' else 'removeClass'] 'ui-disabled' if not app.offline()
 			if app.map?
-				map.setCenter place.geometry.location
-				map.setMarkers position: place.geometry.location
+				loc = place.geometry?.location or new google.maps.LatLng place.location.lat, place.location.lng
+				map.setCenter loc
+				map.setMarkers position: loc
 				map.setZoom 15
 			$('#detail_place').text place.name
 			ln_type = 'Visit its Website'
@@ -858,7 +861,7 @@ $('#detail').bind
 <li>#{place.fulladdr}</li><li>#{place.phone}</li>
 <li>#{place.gtypes.replace(/_/g, ' ').toUpperCase()}</li>
 <li>#{if place.rating? then proc_rating(place.rating) else '(No Rating Yet)' }</li>
-<li><a href=\"#{place.website}\" target=\"_blank\">#{ln_type}</a></li>
+<li><a href=\"#{xss_safe.attr place.website}\" target=\"_blank\">#{ln_type}</a></li>
 <li>This place #{if place.canappt then 'CAN' else 'CANNOT'} make Appointment</li>
 #{if app.offline() then '<li>You are offline now, neigher Appointment nor Direction is available!</li>' else ''}</ul>"
 			# save history

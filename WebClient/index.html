@@ -163,9 +163,9 @@
 			<form id="appt_form" data-ajax="false">
 			<h1>Appointment</h1>
 			<label for="cname">Contact Name: (Optional)</label>
-			<input type="text" name="name" id="cname" placeholder="Contact Name" />
+			<input type="text" name="name" id="cname" maxlength="100" placeholder="Contact Name" />
 			<label for="cphone">Phone Number: (Optional)</label>
-			<input type="tel" name="phone" id="cphone" placeholder="Phone Number" />
+			<input type="tel" name="phone" id="cphone" maxlength="15" placeholder="Phone Number" />
 			<label for="datetime">Appointment Time: (Required)</label>
 			<input type="datetime" name="datetime" id="datetime" required="required" placeholder="Date Time" />
 			<label for="comments">Comments: (Optional)</label>
@@ -178,8 +178,7 @@
 		</div>
 	</div>
 	<script type="text/javascript">
-	if (navigator.onLine)
-		document.writeln('<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=true&language=en-US"></s'+'cript>');
+	if (navigator.onLine) document.writeln('<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=true&language=en-US"></s'+'cript>');
 	document.writeln('<script type="text/javascript" src="app.js"></s'+'cript>');
 	</script>
 </body>

@@ -1,0 +1,1 @@
+﻿<%@ ServiceHost Language="C#" Debug="true" Service="KnightRider.WP7Service" CodeBehind="WP7Service.svc.cs" %>
