@@ -34,10 +34,10 @@
 			<div id="login_form_warp">
 				<form id="login_form" data-ajax="false">
 				<label for="user">Email:</label>
-				<input type="email" name="email" id="email" placeholder="Enter your Email" required="required" />
+				<input type="email" name="email" id="email" maxlength="100" placeholder="Enter your Email" required="required" />
 				<br/>
 				<label for="password">Password:</label>
-				<input type="password" name="password" id="password" placeholder="Enter your Password" required="required" pattern=".{6,}" />
+				<input type="password" name="password" id="password" maxlength="100" placeholder="Enter your Password" required="required" pattern=".{6,}" />
 				<br/>
 				<div data-role="fieldcontain">
 					<label for="autologin">Auto Login:</label>
@@ -59,15 +59,15 @@
 			<h1>Registration</h1>
 			<form id="reg_form" data-ajax="false">
 			<label for="user">Email:</label>
-			<input type="email" name="email" id="reg_email" placeholder="Enter your Email" required="required" />
+			<input type="email" name="email" id="reg_email" maxlength="100" placeholder="Enter your Email" required="required" />
 			<label for="password">Password:</label>
-			<input type="password" name="password" id="reg_password" placeholder="Enter your Password" required="required" pattern=".{6,}" />
+			<input type="password" name="password" id="reg_password" maxlength="100" placeholder="Enter your Password" required="required" pattern=".{6,}" />
 			<input type="password" name="password2" id="reg_password2" placeholder="Re-enter your Password" required="required" pattern=".{6,}" />
 			<label for="first">Full Name:</label>
-			<input type="text" name="first" id="first" placeholder="First Name" required="required" />
-			<input type="text" name="last" id="last" placeholder="Last Name" required="required" />
+			<input type="text" name="first" id="first" maxlength="50" placeholder="First Name" required="required" />
+			<input type="text" name="last" id="last" maxlength="50" placeholder="Last Name" required="required" />
 			<label for="phone">Phone Number:</label>
-			<input type="tel" name="phone" id="phone" placeholder="Phone Number" required="required" />
+			<input type="tel" name="phone" id="phone" maxlength="15" placeholder="Phone Number" required="required" />
 			<br/>
 			<div class="ui-grid-a">
 				<div class="ui-block-a"><a data-role="button" href="#login">Cancel</a></div>

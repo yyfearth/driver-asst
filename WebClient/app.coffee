@@ -45,7 +45,7 @@ svc = (svc, cfg) ->
 	# start
 	$.mobile.showPageLoadingMsg() if not cfg.background
 	$.ajax # ajax call
-		url: "svc/#{cfg.svc}.svc/#{cfg.method}"
+		url: "svc/ajax/#{cfg.svc}.svc/#{cfg.method}"
 		type: cfg.type
 		dataType: 'json'
 		contentType: 'application/json;charset=utf-8'
@@ -488,8 +488,8 @@ $('#home').bind
 			alert_el = $('#alerts').empty()
 			html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>'
 			html = "<li data-role=\"list-divider\" class=\"ui-body-c list-none\">#{alerts.length} Alerts</li>" + alerts.map((a) ->
-				"<li><a href=\"javascript:alert('Summary: #{a.summary}\\nMessage: #{a.message}\\n
-From: #{a.datetime}\\nExpire: #{a.expired}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
+				msg = "Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}".replace /'/g, "\\'"
+				"<li><a href=\"javascript:alert('#{msg}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
 			).join '' if alerts.length > 0
 			$('#alerts').html(html).listview().listview 'refresh'
 		#@auto = setInterval (->

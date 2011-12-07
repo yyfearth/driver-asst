@@ -3,15 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.ServiceModel;
-using System.ServiceModel.Activation;
-using System.ServiceModel.Web;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace KnightRider {
-	[ServiceContract(Namespace = "")]
-	[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
-	public class User {
+	// NOTE: You can use the "Rename" command on the "Refactor" menu to change the class name "Service" in code, svc and config file together.
+	public class Service {
+		[ServiceContract(Namespace = "")]
 		[DataContract]
 		public class LoginResult {
 			[DataMember]
@@ -21,7 +18,6 @@ namespace KnightRider {
 		}
 
 		[OperationContract]
-		[WebInvoke(Method = "POST", BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]
 		public LoginResult login(string email, string password) { // cacheable
 			try {
 				var userid = DataAccess.ValidateUser(email, password);
@@ -35,7 +31,6 @@ namespace KnightRider {
 		}
 
 		[OperationContract]
-		[WebInvoke(Method = "POST", BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]
 		public void logout(uint uid, string sid) { // cacheable
 			try {
 				DataAccess.LogoutUser(uid, sid);
@@ -43,7 +38,6 @@ namespace KnightRider {
 		}
 
 		[OperationContract]
-		[WebInvoke(Method = "POST", BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]
 		public uint reg(UserJson user) { // cacheable
 			try {
 				return DataAccess.AddUser(user);
@@ -55,7 +49,6 @@ namespace KnightRider {
 		}
 
 		[OperationContract]
-		[WebInvoke(Method = "POST", BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]
 		public bool check(uint uid, string sid) { // cacheable
 			try {
 				return DataAccess.ValidateLogin(uid, sid);
@@ -64,6 +57,30 @@ namespace KnightRider {
 			}
 		}
 
-		// Add more operations here and mark them with [OperationContract]
+		[OperationContract]
+		public DataJson[] sync(string name, DateTime last) {
+			//DateTime lastdt = last > 0 ? origin.AddTicks(last) : new DateTime(0);
+			switch (name) {
+				case "alert":
+				case "alerts":
+					return DataAccess.SyncAlerts(last);
+				case "place":
+					return DataAccess.SyncPlace(last);
+				default:
+					throw new Exception("Invalid name");
+			}
+		}
+
+		[OperationContract]
+		public void add(string name, DataJson json) {
+			switch (name) {
+				case "appt":
+				case "appointment":
+					DataAccess.AddAppointment(json as AppointmentJson);
+					return;
+				default:
+					throw new Exception("Invalid name");
+			}
+		}
 	}
 }
