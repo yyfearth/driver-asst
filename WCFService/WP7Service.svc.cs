@@ -7,6 +7,7 @@ using System.ServiceModel.Activation;
 namespace KnightRider {
 	[ServiceContract(Namespace = "")]
 	[SilverlightFaultBehavior]
+	[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
 	public class WP7Service {
 		[DataContract]
 		public class LoginResult {

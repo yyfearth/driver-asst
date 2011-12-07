@@ -18,15 +18,21 @@ namespace KnightRider {
 	// user
 	[DataContract]
 	public enum UserType { // 1 should be the default correct value
+		[EnumMember]
 		Invalid = 0,
+		[EnumMember]
 		Unspecified = 1,
+		[EnumMember]
 		Driver = 2,
+		[EnumMember]
 		VIP = 3,
 		// todo: add more types
 	}
 	[DataContract]
 	public enum UserStatus { // 1 should be the default correct value
+		[EnumMember]
 		Invalid = 0,
+		[EnumMember]
 		Normal = 1,
 		// todo: add more status
 	}
@@ -55,17 +61,25 @@ namespace KnightRider {
 	// place
 	[DataContract, Flags]
 	public enum PlaceSvcType { // 1 should be the default correct value
+		[EnumMember]
 		Invalid = 0,
+		[EnumMember]
 		Unspecified = 1, // All
+		[EnumMember]
 		ServiceStation = 2,
+		[EnumMember]
 		GasStation = 4,
+		[EnumMember]
 		TowingStation = 8,
+		[EnumMember]
 		RepairStation = 16,
 		// todo: add more types
 	}
 	[DataContract]
 	public enum PlaceStatus { // 1 should be the default correct value
+		[EnumMember]
 		Invalid = 0,
+		[EnumMember]
 		Normal = 1,
 		// todo: add more status
 	}
@@ -112,13 +126,20 @@ namespace KnightRider {
 	// appointment
 	[DataContract]
 	public enum AppointmentStatus { // 1 should be the default correct value
+		[EnumMember]
 		Invalid = 0,
+		[EnumMember]
 		Created = 1, // init
+		[EnumMember]
 		Received = 2,
+		[EnumMember]
 		Approved = 3,
+		[EnumMember]
 		Rejected = 4,
 		// todo: add more types
+		[EnumMember]
 		Expired = 8,
+		[EnumMember]
 		Canceled = 9,
 	}
 	[DataContract]
@@ -144,22 +165,30 @@ namespace KnightRider {
 	// alerts
 	[DataContract]
 	public enum AlertType { // 1 should be the default correct value
+		[EnumMember]
 		Invalid = 0,
+		[EnumMember]
 		Unspecified = 1,
+		[EnumMember]
 		Weather = 2,
+		[EnumMember]
 		Traffic = 3,
+		[EnumMember]
 		Service = 4,
 		// todo: add more types
 	}
 	[DataContract]
 	public enum AlertStatus { // 1 should be the default correct value
+		[EnumMember]
 		Invalid = 0,
+		[EnumMember]
 		Normal = 1,
 		// these shoud be auto calc, and auto clear after expire
 		//Saved = 1,
 		//Started = 2,
 		//Expired = 3,
 		// todo: add more status
+		[EnumMember]
 		Canceled = 9,
 	}
 	[DataContract]
