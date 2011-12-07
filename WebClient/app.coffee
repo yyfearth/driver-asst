@@ -15,6 +15,11 @@ check_online = ->
 	else setTimeout arguments.callee, 10000 # 10s
 check_online() # 10s
 $(document.body).addClass 'offline' if app.offline()
+applicationCache.onupdateready = () ->
+	applicationCache.swapCache();
+	location.reload if confirm 'Application has been updated just now.\n
+In order to work properly, \n
+PLEASE CLICK OK to reload this Application as soon as possible.'
 # ========== svc ========== 
 xss_safe = 
 	remove_regex: /on\w{1,20}?=|javascript:/ig # prevent attr injection
@@ -888,6 +893,7 @@ $('#detail').bind
 			if p.length
 				p = p[0]
 				$.extend sel_p, p
+				sel_p.geometry = location: google.maps.LatLng place.location.lat, place.location.lng
 				show_detail sel_p
 			else if not app.offline()
 				map.plcsvc.getDetails (reference: sel_p.reference), (p, status) ->
@@ -941,4 +947,4 @@ $('#direction').bind
 		#@auto = clearInterval @auto
 		map.dirrdr.setMap null
 #  ========== end ==========
-console.log 9, 'Wilson' # jsmin app.js && rm app.js && mv app.min.js app.js
+console.log 10, 'Wilson' # jsmin app.js && rm app.js && mv app.min.js app.js

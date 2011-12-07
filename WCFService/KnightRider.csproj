@@ -92,6 +92,7 @@
     <Compile Include="index.aspx.designer.cs">
       <DependentUpon>index.aspx</DependentUpon>
     </Compile>
+    <Compile Include="SilverlightFaultBehavior.cs" />
     <Compile Include="WP7Service.svc.cs">
       <DependentUpon>WP7Service.svc</DependentUpon>
     </Compile>

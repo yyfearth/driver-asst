@@ -1,6 +1,6 @@
 CACHE MANIFEST
 
-#version 1.2 12-6-2011
+#version 1.21 12-7-2011
 
 CACHE:
 
@@ -39,6 +39,8 @@ app.css
 lib/images/ajax-loader.png
 lib/images/icons-18-black.png
 lib/images/icons-18-white.png
+lib/images/icons-36-black.png
+lib/images/icons-36-white.png
 res/kr.jpg
 res/star.png
 res/halfstar.png
@@ -47,7 +49,6 @@ res/android.png
 res/wp7.png
 
 #javascript files
-#//maps.googleapis.com/maps/api/js?libraries=places&sensor=true&language=en-US
 lib/jquery-1.7.1.min.js
 lib/jquery.mobile-1.0.min.js
 app.js
