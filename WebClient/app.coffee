@@ -348,7 +348,7 @@ ORDER BY datetime DESC, importance DESC;", [], ((tx, ret) ->
 			@ # end of load alerts
 		app.db.sync_alerts = (callback) ->
 			if app.offline()
-				app.db.transaction load_alerts
+				app.db.transaction (tx) -> load_alerts tx, callback
 			else app.db.sync 'alerts', (data) ->
 				app.db.transaction (tx) ->
 					if data.length
