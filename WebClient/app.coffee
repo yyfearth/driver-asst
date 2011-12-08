@@ -893,7 +893,7 @@ $('#detail').bind
 			if p.length
 				p = p[0]
 				$.extend sel_p, p
-				sel_p.geometry = location: google.maps.LatLng place.location.lat, place.location.lng
+				sel_p.geometry = location: google.maps.LatLng sel_p.location.lat, sel_p.location.lng
 				show_detail sel_p
 			else if not app.offline()
 				map.plcsvc.getDetails (reference: sel_p.reference), (p, status) ->
