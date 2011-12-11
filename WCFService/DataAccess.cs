@@ -317,7 +317,7 @@ namespace KnightRider {
 			using (SqlConnection cn = new SqlConnection(conn)) {
 				string sql = "INSERT INTO [Place] (GID, GTypes, Name, Latitude, Longitude, Vicinity, FullAddress, Phone, Email, Website, Rating, SvcTypes, OpenHours, CanAppointment, Status, CreatedTime, ModifiedTime) VALUES (@GID, @GTypes, @Name, @Latitude, @Longitude, @Vicinity, @FullAddress, @Phone, @Email, @Website, @Rating, @OpenHours, @CanAppointment, @SvcTypes, 1, GETDATE(), GETDATE())";
 				string rating = place.rating.HasValue ? place.rating.Value.ToString("0.0") : "NULL";
-				sql = sql.Replace("@Rating", rating);
+				sql = sql.Replace("@Rating", rating); // safe for value is number
 				SqlCommand cmd = new SqlCommand(sql, cn);
 				cmd.Parameters.AddWithValue("@GID", place.gid);
 				cmd.Parameters.AddWithValue("@GTypes", place.gtypes);

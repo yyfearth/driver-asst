@@ -1,6 +1,8 @@
 ## Knight Rider
 ## Wilson @ yyfearth.com
-window.offline_mode = not navigator.onLine	
+window.offline_mode = not navigator.onLine
+$(document).bind 'mobileinit', ->
+	$.mobile.touchOverflowEnabled = true;
 # app init
 window.app = # ns
 	back: -> history.go -1
@@ -17,21 +19,61 @@ check_online() # 10s
 $(document.body).addClass 'offline' if app.offline()
 applicationCache.onupdateready = () ->
 	applicationCache.swapCache();
-	location.reload if confirm 'Application has been updated just now.\n
+	location.reload() if confirm 'Application has been updated just now.\n
 In order to work properly, \n
 PLEASE CLICK OK to reload this Application as soon as possible.'
 # ========== svc ========== 
 xss_safe = 
-	remove_regex: /on\w{1,20}?=|javascript:/ig # prevent attr injection
+	#remove_regex: /on\w{1,20}?=|javascript:/ig # prevent attr injection
 	replace_regex: /<|>/g # prevent html esp script
 	replace_dict:
-		'>': '&gt;'
+		'&': '&amp;'
 		'<': '&lt;'
+		'>': '&gt;'
+		'"': '&quot;'
+		"'": '&#x27;' # &apos; is not recommended
+		'/': '&#x2F;' # forward slash is included as it helps end an HTML entity
+	esc_regex: /\\[\/\\nbtvfr'"0(u\w{4})(x\w{2})]/g
+	esc_dict:
+		'\\': '\\'
+		'\/': '\/'
+		'"': '"'
+		"'": "'"
+		'0': '\0'
+		'n': '\n'
+		'b': '\b'
+		't': '\t'
+		'v': '\v'
+		'f': '\f'
+		'r': '\r'
+	url: (url) -> encodeURI url # todo:
 	attr: (str) ->
-		str.replace /[\n'"]/g, '\\$0'
+		# str.replace /[\n'"]/g, '\\$0'
+		str.toString()
+			#.replace @remove_regex, ''
+			.replace /\W/g, (ch) ->
+				s = ch.charCodeAt(0)
+				ch = if s < 255 then "&##{s};" else ch
+	js: (str, noesc) -> # noesc = true if there are no \n like in str
+		#.replace /\\./, '' todo: \b \n
+		if not noesc
+			str = str.replace @esc_regex, (ch) =>
+				ch = ch.slice 1 # remove ^\
+				if @esc_dict[ch]?
+					@esc_dict[ch]
+				else
+					String.fromCharCode Number ch.clice 1
+		str.replace /\W/g, (ch) ->
+			s = ch.charCodeAt(0)
+			if s < 255
+				s = s.toString 16
+				s = '0' + s if s.length < 2
+				'\\x' + s
+			else
+				ch
 	str: (str) -> # str should be a string
-		str = str.toString()
-			.replace @remove_regex, ''
+		str.toString()
+			#.replace @remove_regex, ''
 			.replace @replace_regex, (p) -> @replace_dict[p]
 	json: (json, parse) -> # str is string or json obj, parse = true if need to parse json obj back
 		is_str = typeof json is 'string'
@@ -231,7 +273,7 @@ if not app.offline()
 			#check_online()
 			$(document.body)[if app.offline() then 'addClass' else 'removeClass'] 'offline'
 		pageshow: ->
-			$.mobile.fixedToolbars.show()
+			$.mobile.fixedToolbars.show(true)
 			@hh = $('[data-role="header"]', @)?.outerHeight() or 0
 			@fh = $('[data-role="footer"]', @)?.outerHeight() or 0
 			@bh = document.body.clientHeight - @hh - @fh
@@ -495,7 +537,7 @@ $('#home').bind
 			alert_el = $('#alerts').empty()
 			html = '<li data-role="list-divider" class="ui-body-c list-none">No Alerts</li>'
 			html = "<li data-role=\"list-divider\" class=\"ui-body-c list-none\">#{alerts.length} Alerts</li>" + alerts.map((a) ->
-				msg = xss_safe.attr "Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}"
+				msg = xss_safe.js "Summary: #{a.summary}\\nMessage: #{a.message}\\nFrom: #{a.datetime}\\nExpire: #{a.expired}"
 				"<li><a href=\"javascript:alert('#{msg}')\">#{a.summary} (#{a.datetime.toLocaleDateString()})</a></li>"
 			).join '' if alerts.length > 0
 			$('#alerts').html(html).listview().listview 'refresh'
@@ -591,6 +633,9 @@ $('#reg_form').submit (e) ->
 			first: @first.value.trim()
 			last: @last.value.trim()
 		phone: @phone.value.trim()
+	if /[<>"]/.test (u.email + u.first + u.last + u.phone)
+		alert 'Invalid charactors: < > and " found'
+		return false
 	console.log 'reg', u
 	svc 'user',
 		method: 'reg'
@@ -862,12 +907,12 @@ $('#detail').bind
 			else
 				place.website = place.url
 				ln_type = 'View on Google Place'
-			detial_info.html "<ul>
-<li>#{place.fulladdr}</li><li>#{place.phone}</li>
-<li>#{place.gtypes.replace(/_/g, ' ').toUpperCase()}</li>
-<li>#{if place.rating? then proc_rating(place.rating) else '(No Rating Yet)' }</li>
-<li><a href=\"#{xss_safe.attr place.website}\" target=\"_blank\">#{ln_type}</a></li>
-<li>This place #{if place.canappt then 'CAN' else 'CANNOT'} make Appointment</li>
+			p = xss_safe.json place, true # back to obj
+			detial_info.html "<ul><li>#{p.fulladdr}</li><li>#{p.phone}</li>
+<li>#{p.gtypes.replace(/_/g, ' ').toUpperCase()}</li>
+<li>#{if p.rating? then proc_rating(p.rating) else '(No Rating Yet)' }</li>
+<li><a href=\"#{xss_safe.attr p.website}\" target=\"_blank\">#{ln_type}</a></li>
+<li>This p #{if p.canappt then 'CAN' else 'CANNOT'} make Appointment</li>
 #{if app.offline() then '<li>You are offline now, neigher Appointment nor Direction is available!</li>' else ''}</ul>"
 			# save history
 			psh = app.user.place_search_history ?= []
