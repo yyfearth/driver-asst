@@ -72,9 +72,7 @@ xss_safe =
 			else
 				ch
 	str: (str) -> # str should be a string
-		str.toString()
-			#.replace @remove_regex, ''
-			.replace @replace_regex, (p) -> @replace_dict[p]
+		str.toString().replace @replace_regex, (p) => @replace_dict[p]
 	json: (json, parse) -> # str is string or json obj, parse = true if need to parse json obj back
 		is_str = typeof json is 'string'
 		json = JSON.stringify json if not is_str
@@ -101,7 +99,7 @@ svc = (svc, cfg) ->
 		data: cfg.data
 		processdata: cfg.type isnt 'POST'
 		dataFilter: (data, type) -> # safe
-			console.log 'data form ajax', type, data
+			# console.log 'data form ajax', type, data
 			return xss_safe.str data
 		complete: if cfg.background then null else (xhr) ->
 			console.log 'ajax returned'
@@ -467,42 +465,42 @@ VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" # insert new rows
 		app.db.transaction (tx) ->
 			console.log 'init tables'
 			tx.executeSql "CREATE TABLE IF NOT EXISTS [Alerts] (
-				id int not null primary key, 
-				summary nvarchar(100) not null, 
-				message text, 
-				datetime datetime, 
-				expired datetime, 
-				importance tinyint not null, 
-				type tinyint not null, 
-				status tinyint not null,
-				created datetime not null, 
-				modified datetime not null
-			);"
+id int not null primary key, 
+summary nvarchar(100) not null, 
+message text, 
+datetime datetime, 
+expired datetime, 
+importance tinyint not null, 
+type tinyint not null, 
+status tinyint not null,
+created datetime not null, 
+modified datetime not null
+);"
 			#console.log 'init alerts'
 			tx.executeSql "CREATE INDEX IF NOT EXISTS [Alerts_ODR] ON [Alerts] (datetime DESC, importance DESC);"
 			tx.executeSql "INSERT INTO [Alerts](id,summary,importance,type,status,created,modified)
 SELECT 0,'LastUpdate',0,0,0,DATETIME('now','localtime'),DATETIME(0,'unixepoch','localtime')
 WHERE NOT EXISTS(SELECT * FROM [Alerts] WHERE id=0);"
 			tx.executeSql "CREATE TABLE IF NOT EXISTS [Place] (
-				id int not null primary key, 
-				gid char(40),
-				name nvarchar(100),
-				lat float,
-				lng float,
-				vicinity nvarchar(200),
-				fulladdr nvarchar(1000),
-				phone varchar(15),
-				email varchar(100),
-				website varchar(100),
-				rating tinyint,
-				gtypes varchar(100),
-				svctypes tinyint not null,
-				openhours text,
-				canappt bit not null,
-				status tinyint not null,
-				created datetime not null,
-				modified datetime not null
-			);"
+id int not null primary key, 
+gid char(40),
+name nvarchar(100),
+lat float,
+lng float,
+vicinity nvarchar(200),
+fulladdr nvarchar(1000),
+phone varchar(15),
+email varchar(100),
+website varchar(100),
+rating tinyint,
+gtypes varchar(100),
+svctypes tinyint not null,
+openhours text,
+canappt bit not null,
+status tinyint not null,
+created datetime not null,
+modified datetime not null
+);"
 			#console.log 'init place'
 			tx.executeSql "CREATE UNIQUE INDEX IF NOT EXISTS [Place_GID] ON [Place] (GID);"
 			tx.executeSql "CREATE INDEX IF NOT EXISTS [Place_TYP] ON [Place] (svctypes);"
