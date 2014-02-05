@@ -30,6 +30,8 @@ namespace KnightRider {
 				throw new BadRequestException();
 			using (SqlConnection cn = new SqlConnection(conn)) {
 				string sql = "SELECT ID FROM [User] WHERE Email = @Email and Password = @PK";
+				//string sql = "SELECT ID FROM [User] WHERE Email = '{0}' and Password = '{1}'";
+				//sql = string.Format(sql, email, password);
 				SqlCommand cmd = new SqlCommand(sql, cn);
 				cmd.Parameters.AddWithValue("@Email", email);
 				var key = hash(email.ToLower() + '\0' + password.ToLower());
